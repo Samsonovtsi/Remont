@@ -22,6 +22,7 @@ export interface EstimateResult {
   areaM2: number;
   package: string;
   calculationMode: 'range' | 'smeta';
+  measurementMode: 'quick' | 'exact';
   basePricePerM2: number;
   lines: EstimateLine[];
   worksTotal: number;
@@ -33,13 +34,18 @@ export interface EstimateResult {
   estimateBeforeReward: number;
   agentRewardRate: number;
   agentReward: number;
+  agentRewardBase: number;
   clientTotal: number;
   pricePerM2Final: number;
   assumptions: {
     roughWallAreaM2?: number;
     cleanWallAreaM2?: number;
+    roughFloorAreaM2?: number;
     wetTileAreaM2?: number;
     dryFloorAreaM2?: number;
+    balconyTileAreaM2?: number;
+    ceilingAreaM2?: number;
+    demolitionAreaM2?: number;
     lights?: number;
     sockets?: number;
   };
@@ -50,36 +56,46 @@ const roundRub = (value: number) => Math.round(value);
 
 function estimateGeometry(input: EstimateRequest) {
   const roomFactor = Math.min(Math.max(input.rooms, 1), 5);
-  const roughWallAreaM2 = input.areaM2 * (2.25 + roomFactor * 0.15);
-  const cleanWallAreaM2 = input.areaM2 * (1.95 + roomFactor * 0.13);
-  const wetTileAreaM2 = input.bathrooms > 0 ? input.bathrooms * 28 : 0;
-  const dryFloorAreaM2 = Math.max(input.areaM2 - input.bathrooms * 5.5, 0);
-  const lights = input.needsFullElectrical ? Math.max(1, Math.round(input.areaM2 * 0.58)) : 0;
-  const sockets = input.needsFullElectrical ? Math.max(1, Math.round(input.areaM2 * 0.82)) : 0;
+
+  if (input.calculationMode === 'exact') {
+    return {
+      roughWallAreaM2: input.roughWallAreaM2 ?? 0,
+      cleanWallAreaM2: input.cleanWallAreaM2 ?? 0,
+      roughFloorAreaM2: input.roughFloorAreaM2 ?? 0,
+      wetTileAreaM2: input.wetTileAreaM2 ?? 0,
+      dryFloorAreaM2: input.dryFloorAreaM2 ?? 0,
+      balconyTileAreaM2: input.balconyTileAreaM2 ?? 0,
+      ceilingAreaM2: input.ceilingAreaM2 ?? 0,
+      demolitionAreaM2: input.demolitionAreaM2 ?? 0,
+      lights: input.lights ?? 0,
+      sockets: input.sockets ?? 0
+    };
+  }
 
   return {
-    roughWallAreaM2,
-    cleanWallAreaM2,
-    wetTileAreaM2,
-    dryFloorAreaM2,
-    lights,
-    sockets
+    roughWallAreaM2: input.areaM2 * (2.25 + roomFactor * 0.15),
+    cleanWallAreaM2: input.areaM2 * (1.95 + roomFactor * 0.13),
+    roughFloorAreaM2:
+      input.package === 'comfort'
+        ? input.areaM2
+        : Math.min(input.areaM2, Math.max(input.bathrooms, 1) * 5),
+    wetTileAreaM2: input.bathrooms > 0 ? input.bathrooms * 28 : 0,
+    dryFloorAreaM2: Math.max(input.areaM2 - input.bathrooms * 5.5, 0),
+    balconyTileAreaM2: input.hasBalcony ? 4 : 0,
+    ceilingAreaM2: input.needsCeiling ? input.areaM2 : 0,
+    demolitionAreaM2: input.needsDemolition ? input.areaM2 * 0.2 : 0,
+    lights: input.needsFullElectrical ? Math.max(1, Math.round(input.areaM2 * 0.58)) : 0,
+    sockets: input.needsFullElectrical ? Math.max(1, Math.round(input.areaM2 * 0.82)) : 0
   };
 }
 
 function calculateSmetaEstimate(input: EstimateRequest): EstimateResult {
   const rates = SMETA_RATES[input.package as 'standard' | 'comfort'];
-  const pkg = PACKAGE_PRICES[input.package];
   const geometry = estimateGeometry(input);
   const lines: EstimateLine[] = [];
 
-  const roughFloorArea =
-    input.package === 'comfort'
-      ? input.areaM2
-      : Math.min(input.areaM2, Math.max(input.bathrooms, 1) * 5);
-
   const roughWalls = geometry.roughWallAreaM2 * rates.roughWallPerM2;
-  const roughFloor = roughFloorArea * rates.roughFloorPerM2;
+  const roughFloor = geometry.roughFloorAreaM2 * rates.roughFloorPerM2;
   const roughPlumbing = input.needsFullPlumbing
     ? rates.plumbingRough * (1 + Math.max(0, input.bathrooms - 1) * 0.8)
     : 0;
@@ -98,7 +114,7 @@ function calculateSmetaEstimate(input: EstimateRequest): EstimateResult {
   const cleanPlumbing = input.needsFullPlumbing
     ? rates.plumbingClean * (1 + Math.max(0, input.bathrooms - 1) * 0.8)
     : 0;
-  const balconyWorks = input.hasBalcony ? 4 * EXTRA_RATES.balconyTileWorkPerM2 : 0;
+  const balconyWorks = geometry.balconyTileAreaM2 * EXTRA_RATES.balconyTileWorkPerM2;
 
   const cleanWorks = cleanWalls + cleanFloor + tileWorks + cleanPlumbing + balconyWorks;
   lines.push({
@@ -144,14 +160,12 @@ function calculateSmetaEstimate(input: EstimateRequest): EstimateResult {
       Math.ceil(input.warmFloorM2 / 3) * EXTRA_RATES.warmFloorMaterialUpTo3M2;
   }
 
-  if (input.needsCeiling) {
-    additionalMaterials += input.areaM2 * EXTRA_RATES.ceilingMaterialPerM2;
+  if (input.needsCeiling && geometry.ceilingAreaM2 > 0) {
+    additionalMaterials += geometry.ceilingAreaM2 * EXTRA_RATES.ceilingMaterialPerM2;
   }
 
-  if (input.needsDemolition) {
-    // В сметах демонтаж указан за фактическую площадь перегородок.
-    // Без чертежа считаем 20% площади объекта как предварительный объём.
-    additionalWorks += input.areaM2 * 0.2 * EXTRA_RATES.demolitionPerM2;
+  if (input.needsDemolition && geometry.demolitionAreaM2 > 0) {
+    additionalWorks += geometry.demolitionAreaM2 * EXTRA_RATES.demolitionPerM2;
   }
 
   if (additionalWorks > 0) {
@@ -216,13 +230,18 @@ function calculateSmetaEstimate(input: EstimateRequest): EstimateResult {
   });
 
   const clientTotal = roundRub(subtotalBeforeVat + vat);
-  const agentReward = roundRub(clientTotal * AGENT_REWARD_RATE);
+
+  // Бизнес-правило: риелтор получает 5% только от стоимости работ.
+  // Материалы, доставка и НДС в базу вознаграждения не входят.
+  const agentRewardBase = roundRub(worksTotal);
+  const agentReward = roundRub(agentRewardBase * AGENT_REWARD_RATE);
 
   return {
     currency: 'RUB',
     areaM2: input.areaM2,
     package: input.package,
     calculationMode: 'smeta',
+    measurementMode: input.calculationMode,
     basePricePerM2: roundRub(clientTotal / input.areaM2),
     lines,
     worksTotal: roundRub(worksTotal),
@@ -234,18 +253,25 @@ function calculateSmetaEstimate(input: EstimateRequest): EstimateResult {
     estimateBeforeReward: clientTotal,
     agentRewardRate: AGENT_REWARD_RATE,
     agentReward,
+    agentRewardBase,
     clientTotal,
     pricePerM2Final: roundRub(clientTotal / input.areaM2),
     assumptions: {
       roughWallAreaM2: Math.round(geometry.roughWallAreaM2 * 10) / 10,
       cleanWallAreaM2: Math.round(geometry.cleanWallAreaM2 * 10) / 10,
+      roughFloorAreaM2: Math.round(geometry.roughFloorAreaM2 * 10) / 10,
       wetTileAreaM2: Math.round(geometry.wetTileAreaM2 * 10) / 10,
       dryFloorAreaM2: Math.round(geometry.dryFloorAreaM2 * 10) / 10,
+      balconyTileAreaM2: Math.round(geometry.balconyTileAreaM2 * 10) / 10,
+      ceilingAreaM2: Math.round(geometry.ceilingAreaM2 * 10) / 10,
+      demolitionAreaM2: Math.round(geometry.demolitionAreaM2 * 10) / 10,
       lights: geometry.lights,
       sockets: geometry.sockets
     },
     disclaimer:
-      'Расчёт построен по структуре загруженных смет: работы + материалы + доставка 10% от материалов + НДС 5%. Площади стен, плитки и количество электроточек оцениваются автоматически и уточняются после замера.'
+      input.calculationMode === 'exact'
+        ? 'Точная смета рассчитана по введённым замерам. Вознаграждение риелтора = 5% только от стоимости работ; материалы, доставка и НДС не входят в базу вознаграждения.'
+        : 'Быстрый расчёт использует автоматическую оценку площадей и электроточек. Для точной сметы переключитесь в режим «Точная по замерам». Вознаграждение риелтора = 5% только от стоимости работ.'
   };
 }
 
@@ -257,32 +283,27 @@ function calculateRangeEstimate(input: EstimateRequest): EstimateResult {
   let subtotal = input.areaM2 * basePricePerM2;
   subtotal *= CONDITION_FACTOR[input.condition] * PROPERTY_FACTOR[input.propertyType];
 
-  if (input.warmFloorM2 > 0) {
-    subtotal +=
-      input.warmFloorM2 * EXTRA_RATES.warmFloorInstallPerM2 +
-      Math.ceil(input.warmFloorM2 / 3) * EXTRA_RATES.warmFloorMaterialUpTo3M2;
-  }
-
-  const lines: EstimateLine[] = [
-    {
-      code: 'package_range',
-      title: pkg.title + ': ориентировочная стоимость',
-      amount: roundRub(subtotal),
-      group: 'works'
-    }
-  ];
-
   const clientTotal = roundRub(subtotal);
-  const agentReward = roundRub(clientTotal * AGENT_REWARD_RATE);
+
+  // Для пакетного диапазона Минимальный/Премиум нет постатейной разбивки
+  // "работы / материалы", поэтому точное вознаграждение вычислить нельзя.
+  const agentRewardBase = 0;
+  const agentReward = 0;
 
   return {
     currency: 'RUB',
     areaM2: input.areaM2,
     package: input.package,
     calculationMode: 'range',
+    measurementMode: input.calculationMode,
     basePricePerM2: roundRub(basePricePerM2),
-    lines,
-    worksTotal: clientTotal,
+    lines: [{
+      code: 'package_range',
+      title: pkg.title + ': ориентировочная стоимость',
+      amount: clientTotal,
+      group: 'works'
+    }],
+    worksTotal: 0,
     materialsTotal: 0,
     deliveryTotal: 0,
     subtotalBeforeVat: clientTotal,
@@ -291,11 +312,12 @@ function calculateRangeEstimate(input: EstimateRequest): EstimateResult {
     estimateBeforeReward: clientTotal,
     agentRewardRate: AGENT_REWARD_RATE,
     agentReward,
+    agentRewardBase,
     clientTotal,
     pricePerM2Final: roundRub(clientTotal / input.areaM2),
     assumptions: {},
     disclaimer:
-      'Для пакетов Минимальный и Премиум в загруженных материалах нет детальной постатейной сметы. Поэтому используется пакетный диапазон, а не сметная модель.'
+      'Для пакетов Минимальный и Премиум в исходных материалах нет детальной разбивки стоимости на работы и материалы. Поэтому стоимость показывается ориентировочно, а вознаграждение риелтора не рассчитывается до появления стоимости работ.'
   };
 }
 
