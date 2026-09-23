@@ -6,7 +6,6 @@ const rub = new Intl.NumberFormat('ru-RU', {
 
 let selectedPackage = 'comfort';
 let packageData = {};
-
 const $ = (id) => document.getElementById(id);
 
 async function loadPackages() {
@@ -24,13 +23,9 @@ function renderPackages() {
   Object.entries(packageData).forEach(([code, pkg]) => {
     const el = document.createElement('div');
     el.className = 'package' + (code === selectedPackage ? ' active' : '');
-    el.dataset.code = code;
-    const mode = pkg.calculationMode === 'smeta' ? 'по реальным сметам' : 'по диапазону';
+    const mode = pkg.calculationMode === 'smeta' ? 'детальная сметная модель' : 'пакетный диапазон';
     el.innerHTML = `
-      <div class="package-top">
-        <h3>${pkg.title}</h3>
-        <div class="radio-dot"></div>
-      </div>
+      <div class="package-top"><h3>${pkg.title}</h3><div class="radio-dot"></div></div>
       <p>${pkg.description}</p>
       <div class="package-price">${rub.format(pkg.minPerM2)} — ${rub.format(pkg.maxPerM2)} / м²</div>
       <p><strong>${mode}</strong></p>
@@ -38,17 +33,13 @@ function renderPackages() {
     el.addEventListener('click', () => {
       selectedPackage = code;
       renderPackages();
-      const range = $('finishLevel').closest('.range-wrap');
-      range.style.display = pkg.calculationMode === 'range' ? 'block' : 'none';
     });
     root.appendChild(el);
   });
 
   const selected = packageData[selectedPackage];
-  if (selected) {
-    $('finishLevel').closest('.range-wrap').style.display =
-      selected.calculationMode === 'range' ? 'block' : 'none';
-  }
+  $('finishLevel').closest('.range-wrap').style.display =
+    selected?.calculationMode === 'range' ? 'block' : 'none';
 }
 
 function finishText(value) {
@@ -61,51 +52,66 @@ $('finishLevel').addEventListener('input', (event) => {
   $('finishLabel').textContent = finishText(Number(event.target.value));
 });
 
+$('calculationMode').addEventListener('change', () => {
+  $('exactFields').classList.toggle('hidden', $('calculationMode').value !== 'exact');
+});
+
+function num(id) {
+  return Number($(id).value || 0);
+}
+
 function payload() {
+  const exact = $('calculationMode').value === 'exact';
   return {
-    areaM2: Number($('areaM2').value),
+    areaM2: num('areaM2'),
     package: selectedPackage,
     propertyType: $('propertyType').value,
     condition: $('condition').value,
-    bathrooms: Number($('bathrooms').value),
-    rooms: Number($('rooms').value),
-    doors: Number($('doors').value),
+    calculationMode: $('calculationMode').value,
+    bathrooms: num('bathrooms'),
+    rooms: num('rooms'),
+    doors: num('doors'),
     needsFullElectrical: $('needsFullElectrical').checked,
     needsFullPlumbing: $('needsFullPlumbing').checked,
     needsDemolition: $('needsDemolition').checked,
     needsCeiling: $('needsCeiling').checked,
     hasBalcony: $('hasBalcony').checked,
-    warmFloorM2: Number($('warmFloorM2').value || 0),
-    finishLevel: Number($('finishLevel').value)
+    warmFloorM2: num('warmFloorM2'),
+    finishLevel: num('finishLevel'),
+    ...(exact ? {
+      roughWallAreaM2: num('roughWallAreaM2'),
+      cleanWallAreaM2: num('cleanWallAreaM2'),
+      roughFloorAreaM2: num('roughFloorAreaM2'),
+      dryFloorAreaM2: num('dryFloorAreaM2'),
+      wetTileAreaM2: num('wetTileAreaM2'),
+      balconyTileAreaM2: num('balconyTileAreaM2'),
+      ceilingAreaM2: num('ceilingAreaM2'),
+      demolitionAreaM2: num('demolitionAreaM2'),
+      lights: num('lights'),
+      sockets: num('sockets')
+    } : {})
   };
 }
 
 function renderResult(result) {
   $('estimateTotal').textContent = rub.format(result.clientTotal);
-  $('rewardTotal').textContent = rub.format(result.agentReward);
+  $('rewardTotal').textContent = result.agentRewardBase > 0 ? rub.format(result.agentReward) : '—';
+  $('worksTotal').textContent = result.worksTotal > 0 ? rub.format(result.worksTotal) : '—';
+  $('rewardBase').textContent = result.agentRewardBase > 0 ? rub.format(result.agentRewardBase) : '—';
   $('pricePerM2').textContent = rub.format(result.pricePerM2Final);
   $('packageName').textContent = packageData[result.package]?.title || result.package;
 
   $('lines').innerHTML = result.lines.map(line => `
-    <div class="line-item">
-      <span>${line.title}</span>
-      <span>${rub.format(line.amount)}</span>
-    </div>
+    <div class="line-item"><span>${line.title}</span><span>${rub.format(line.amount)}</span></div>
   `).join('');
 
-  const note = document.querySelector('.note');
-  const assumptions = result.assumptions || {};
-  const details = result.calculationMode === 'smeta'
-    ? ` Автооценка: стены ${assumptions.roughWallAreaM2 || 0} м², плитка ${assumptions.wetTileAreaM2 || 0} м², светильники ${assumptions.lights || 0}, розетки/выключатели ${assumptions.sockets || 0}.`
-    : '';
-  note.textContent = result.disclaimer + details;
+  document.querySelector('.note').textContent = result.disclaimer;
 }
 
 $('calculator').addEventListener('submit', async (event) => {
   event.preventDefault();
   const button = $('submitButton');
   const error = $('formError');
-
   error.classList.add('hidden');
   button.disabled = true;
   button.textContent = 'Считаем...';
@@ -116,13 +122,8 @@ $('calculator').addEventListener('submit', async (event) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload())
     });
-
     const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error('Проверьте введённые параметры');
-    }
-
+    if (!response.ok) throw new Error('Проверьте введённые параметры');
     renderResult(data);
   } catch (err) {
     error.textContent = err.message || 'Ошибка расчёта';
@@ -137,7 +138,7 @@ $('calculator').addEventListener('submit', async (event) => {
   try {
     await loadPackages();
     $('calculator').requestSubmit();
-  } catch (err) {
+  } catch {
     $('formError').textContent = 'Не удалось загрузить калькулятор. Проверьте backend.';
     $('formError').classList.remove('hidden');
   }
