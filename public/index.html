@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Калькулятор ремонта</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div>
+        <div class="brand">Этажи.Ремонт</div>
+        <h1>Калькулятор стоимости ремонта</h1>
+        <p>Предварительная смета для риелтора за 1–2 минуты с расчётом вознаграждения 5%.</p>
+      </div>
+      <div class="hero-badge">5%<span>вознаграждение риелтора</span></div>
+    </section>
+
+    <section class="layout">
+      <form id="calculator" class="card form-card">
+        <div class="section-title">
+          <span>1</span>
+          <h2>Объект</h2>
+        </div>
+
+        <div class="grid two">
+          <label>
+            <span>Площадь, м²</span>
+            <input id="areaM2" name="areaM2" type="number" min="1" step="0.1" value="45.4" required />
+          </label>
+
+          <label>
+            <span>Тип объекта</span>
+            <select id="propertyType" name="propertyType">
+              <option value="apartment">Квартира</option>
+              <option value="house">Дом</option>
+              <option value="commercial">Коммерция</option>
+            </select>
+          </label>
+
+          <label>
+            <span>Состояние</span>
+            <select id="condition" name="condition">
+              <option value="new_build">Новостройка</option>
+              <option value="secondary_good">Вторичка, хорошее состояние</option>
+              <option value="secondary_worn">Вторичка, нужен ремонт</option>
+              <option value="shell">Черновая отделка</option>
+            </select>
+          </label>
+
+          <label>
+            <span>Комнат</span>
+            <input id="rooms" name="rooms" type="number" min="0" value="2" />
+          </label>
+
+          <label>
+            <span>Санузлов</span>
+            <input id="bathrooms" name="bathrooms" type="number" min="0" value="1" />
+          </label>
+
+          <label>
+            <span>Межкомнатных дверей</span>
+            <input id="doors" name="doors" type="number" min="0" value="3" />
+          </label>
+        </div>
+
+        <div class="section-title">
+          <span>2</span>
+          <h2>Пакет ремонта</h2>
+        </div>
+
+        <div id="packages" class="packages"></div>
+
+        <label class="range-wrap">
+          <span class="range-label">Уровень комплектации <strong id="finishLabel">Средний</strong></span>
+          <input id="finishLevel" type="range" min="0" max="1" step="0.01" value="0.5" />
+          <div class="range-scale"><span>Базовый</span><span>Максимальный</span></div>
+        </label>
+
+        <div class="section-title">
+          <span>3</span>
+          <h2>Дополнительные работы</h2>
+        </div>
+
+        <div class="checks">
+          <label><input id="needsFullElectrical" type="checkbox" checked /><span>Полная электрика</span></label>
+          <label><input id="needsFullPlumbing" type="checkbox" checked /><span>Полная сантехника</span></label>
+          <label><input id="needsDemolition" type="checkbox" /><span>Демонтаж</span></label>
+          <label><input id="needsCeiling" type="checkbox" checked /><span>Натяжной потолок</span></label>
+          <label><input id="hasBalcony" type="checkbox" /><span>Балкон / лоджия</span></label>
+        </div>
+
+        <label class="warm-floor">
+          <span>Тёплый пол, м²</span>
+          <input id="warmFloorM2" type="number" min="0" step="0.1" value="0" />
+        </label>
+
+        <button id="submitButton" type="submit">Рассчитать смету</button>
+        <p id="formError" class="error hidden"></p>
+      </form>
+
+      <aside class="card result-card">
+        <div class="result-sticky">
+          <div class="eyebrow">Предварительный расчёт</div>
+          <div class="result-total">
+            <span>Стоимость ремонта</span>
+            <strong id="estimateTotal">—</strong>
+          </div>
+
+          <div class="reward">
+            <div>
+              <span>Ваше вознаграждение</span>
+              <small>5% от стоимости ремонта</small>
+            </div>
+            <strong id="rewardTotal">—</strong>
+          </div>
+
+          <div class="metric-row">
+            <div><span>Цена за м²</span><strong id="pricePerM2">—</strong></div>
+            <div><span>Пакет</span><strong id="packageName">—</strong></div>
+          </div>
+
+          <div class="breakdown">
+            <h3>Состав сметы</h3>
+            <div id="lines"><p class="muted">Заполните параметры и нажмите «Рассчитать смету».</p></div>
+          </div>
+
+          <div class="note">
+            Предварительный расчёт. Финальная стоимость уточняется после осмотра и дефектовки объекта.
+          </div>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>
