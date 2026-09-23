@@ -12,77 +12,59 @@
       <div>
         <div class="brand">Этажи.Ремонт</div>
         <h1>Калькулятор стоимости ремонта</h1>
-        <p>Предварительная смета для риелтора за 1–2 минуты с расчётом вознаграждения 5%.</p>
+        <p>Быстрый расчёт для риелтора или точная смета по замерам. Вознаграждение — 5% только от стоимости работ.</p>
       </div>
-      <div class="hero-badge">5%<span>вознаграждение риелтора</span></div>
+      <div class="hero-badge">5%<span>от стоимости работ</span></div>
     </section>
 
     <section class="layout">
       <form id="calculator" class="card form-card">
-        <div class="section-title">
-          <span>1</span>
-          <h2>Объект</h2>
+        <div class="section-title"><span>1</span><h2>Объект</h2></div>
+        <div class="grid two">
+          <label><span>Площадь, м²</span><input id="areaM2" type="number" min="1" step="0.1" value="45.4" required /></label>
+          <label><span>Тип объекта</span><select id="propertyType"><option value="apartment">Квартира</option><option value="house">Дом</option><option value="commercial">Коммерция</option></select></label>
+          <label><span>Состояние</span><select id="condition"><option value="new_build">Новостройка</option><option value="secondary_good">Вторичка, хорошее состояние</option><option value="secondary_worn">Вторичка, нужен ремонт</option><option value="shell">Черновая отделка</option></select></label>
+          <label><span>Комнат</span><input id="rooms" type="number" min="0" value="2" /></label>
+          <label><span>Санузлов</span><input id="bathrooms" type="number" min="0" value="1" /></label>
+          <label><span>Межкомнатных дверей</span><input id="doors" type="number" min="0" value="3" /></label>
         </div>
 
+        <div class="section-title"><span>2</span><h2>Режим расчёта</h2></div>
         <div class="grid two">
           <label>
-            <span>Площадь, м²</span>
-            <input id="areaM2" name="areaM2" type="number" min="1" step="0.1" value="45.4" required />
-          </label>
-
-          <label>
-            <span>Тип объекта</span>
-            <select id="propertyType" name="propertyType">
-              <option value="apartment">Квартира</option>
-              <option value="house">Дом</option>
-              <option value="commercial">Коммерция</option>
+            <span>Точность</span>
+            <select id="calculationMode">
+              <option value="quick">Быстрый — площади считаются автоматически</option>
+              <option value="exact">Точная по замерам</option>
             </select>
-          </label>
-
-          <label>
-            <span>Состояние</span>
-            <select id="condition" name="condition">
-              <option value="new_build">Новостройка</option>
-              <option value="secondary_good">Вторичка, хорошее состояние</option>
-              <option value="secondary_worn">Вторичка, нужен ремонт</option>
-              <option value="shell">Черновая отделка</option>
-            </select>
-          </label>
-
-          <label>
-            <span>Комнат</span>
-            <input id="rooms" name="rooms" type="number" min="0" value="2" />
-          </label>
-
-          <label>
-            <span>Санузлов</span>
-            <input id="bathrooms" name="bathrooms" type="number" min="0" value="1" />
-          </label>
-
-          <label>
-            <span>Межкомнатных дверей</span>
-            <input id="doors" name="doors" type="number" min="0" value="3" />
           </label>
         </div>
 
-        <div class="section-title">
-          <span>2</span>
-          <h2>Пакет ремонта</h2>
+        <div id="exactFields" class="hidden">
+          <div class="section-title"><span>✓</span><h2>Точные замеры</h2></div>
+          <div class="grid two">
+            <label><span>Черновая площадь стен, м²</span><input id="roughWallAreaM2" type="number" min="0" step="0.1" value="129.4" /></label>
+            <label><span>Чистовая площадь стен, м²</span><input id="cleanWallAreaM2" type="number" min="0" step="0.1" value="104.9" /></label>
+            <label><span>Черновая площадь пола, м²</span><input id="roughFloorAreaM2" type="number" min="0" step="0.1" value="45.4" /></label>
+            <label><span>Чистовой пол, м²</span><input id="dryFloorAreaM2" type="number" min="0" step="0.1" value="36.8" /></label>
+            <label><span>Плитка: стены + пол, м²</span><input id="wetTileAreaM2" type="number" min="0" step="0.1" value="33.8" /></label>
+            <label><span>Плитка балкона/лоджии, м²</span><input id="balconyTileAreaM2" type="number" min="0" step="0.1" value="0" /></label>
+            <label><span>Натяжной потолок, м²</span><input id="ceilingAreaM2" type="number" min="0" step="0.1" value="45.4" /></label>
+            <label><span>Демонтаж перегородок, м²</span><input id="demolitionAreaM2" type="number" min="0" step="0.1" value="0" /></label>
+            <label><span>Светильники, шт.</span><input id="lights" type="number" min="0" value="31" /></label>
+            <label><span>Розетки/выключатели, шт.</span><input id="sockets" type="number" min="0" value="41" /></label>
+          </div>
         </div>
 
+        <div class="section-title"><span>3</span><h2>Пакет ремонта</h2></div>
         <div id="packages" class="packages"></div>
-
         <label class="range-wrap">
           <span class="range-label">Уровень комплектации <strong id="finishLabel">Средний</strong></span>
           <input id="finishLevel" type="range" min="0" max="1" step="0.01" value="0.5" />
           <div class="range-scale"><span>Базовый</span><span>Максимальный</span></div>
         </label>
 
-        <div class="section-title">
-          <span>3</span>
-          <h2>Дополнительные работы</h2>
-        </div>
-
+        <div class="section-title"><span>4</span><h2>Работы и опции</h2></div>
         <div class="checks">
           <label><input id="needsFullElectrical" type="checkbox" checked /><span>Полная электрика</span></label>
           <label><input id="needsFullPlumbing" type="checkbox" checked /><span>Полная сантехника</span></label>
@@ -90,11 +72,7 @@
           <label><input id="needsCeiling" type="checkbox" checked /><span>Натяжной потолок</span></label>
           <label><input id="hasBalcony" type="checkbox" /><span>Балкон / лоджия</span></label>
         </div>
-
-        <label class="warm-floor">
-          <span>Тёплый пол, м²</span>
-          <input id="warmFloorM2" type="number" min="0" step="0.1" value="0" />
-        </label>
+        <label class="warm-floor"><span>Тёплый пол, м²</span><input id="warmFloorM2" type="number" min="0" step="0.1" value="0" /></label>
 
         <button id="submitButton" type="submit">Рассчитать смету</button>
         <p id="formError" class="error hidden"></p>
@@ -102,38 +80,27 @@
 
       <aside class="card result-card">
         <div class="result-sticky">
-          <div class="eyebrow">Предварительный расчёт</div>
-          <div class="result-total">
-            <span>Стоимость ремонта</span>
-            <strong id="estimateTotal">—</strong>
-          </div>
+          <div class="eyebrow">Расчёт</div>
+          <div class="result-total"><span>Стоимость ремонта</span><strong id="estimateTotal">—</strong></div>
 
           <div class="reward">
-            <div>
-              <span>Ваше вознаграждение</span>
-              <small>5% от стоимости ремонта</small>
-            </div>
+            <div><span>Вознаграждение риелтора</span><small>5% только от стоимости работ</small></div>
             <strong id="rewardTotal">—</strong>
           </div>
 
           <div class="metric-row">
+            <div><span>Стоимость работ</span><strong id="worksTotal">—</strong></div>
+            <div><span>База 5%</span><strong id="rewardBase">—</strong></div>
             <div><span>Цена за м²</span><strong id="pricePerM2">—</strong></div>
             <div><span>Пакет</span><strong id="packageName">—</strong></div>
           </div>
 
-          <div class="breakdown">
-            <h3>Состав сметы</h3>
-            <div id="lines"><p class="muted">Заполните параметры и нажмите «Рассчитать смету».</p></div>
-          </div>
-
-          <div class="note">
-            Предварительный расчёт. Финальная стоимость уточняется после осмотра и дефектовки объекта.
-          </div>
+          <div class="breakdown"><h3>Состав сметы</h3><div id="lines"><p class="muted">Заполните параметры и нажмите «Рассчитать смету».</p></div></div>
+          <div class="note">Для точного режима внесите фактические площади и количество электроточек.</div>
         </div>
       </aside>
     </section>
   </main>
-
   <script src="/app.js"></script>
 </body>
 </html>
