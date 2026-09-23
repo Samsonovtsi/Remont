@@ -25,6 +25,7 @@ function renderPackages() {
     const el = document.createElement('div');
     el.className = 'package' + (code === selectedPackage ? ' active' : '');
     el.dataset.code = code;
+    const mode = pkg.calculationMode === 'smeta' ? 'по реальным сметам' : 'по диапазону';
     el.innerHTML = `
       <div class="package-top">
         <h3>${pkg.title}</h3>
@@ -32,13 +33,22 @@ function renderPackages() {
       </div>
       <p>${pkg.description}</p>
       <div class="package-price">${rub.format(pkg.minPerM2)} — ${rub.format(pkg.maxPerM2)} / м²</div>
+      <p><strong>${mode}</strong></p>
     `;
     el.addEventListener('click', () => {
       selectedPackage = code;
       renderPackages();
+      const range = $('finishLevel').closest('.range-wrap');
+      range.style.display = pkg.calculationMode === 'range' ? 'block' : 'none';
     });
     root.appendChild(el);
   });
+
+  const selected = packageData[selectedPackage];
+  if (selected) {
+    $('finishLevel').closest('.range-wrap').style.display =
+      selected.calculationMode === 'range' ? 'block' : 'none';
+  }
 }
 
 function finishText(value) {
@@ -82,6 +92,13 @@ function renderResult(result) {
       <span>${rub.format(line.amount)}</span>
     </div>
   `).join('');
+
+  const note = document.querySelector('.note');
+  const assumptions = result.assumptions || {};
+  const details = result.calculationMode === 'smeta'
+    ? ` Автооценка: стены ${assumptions.roughWallAreaM2 || 0} м², плитка ${assumptions.wetTileAreaM2 || 0} м², светильники ${assumptions.lights || 0}, розетки/выключатели ${assumptions.sockets || 0}.`
+    : '';
+  note.textContent = result.disclaimer + details;
 }
 
 $('calculator').addEventListener('submit', async (event) => {
