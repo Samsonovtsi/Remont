@@ -20,10 +20,10 @@ function escapeHtml(value = '') {
 
 function packageImage(code) {
   const images = {
-    minimal: '/images/packages/minimal.png',
-    standard: '/images/packages/standard.png',
-    comfort: '/images/packages/comfort.png',
-    premium: '/images/packages/premium.png'
+    minimal: '/images/packages/minimal.webp?v=20260924-3',
+    standard: '/images/packages/standard.webp?v=20260924-3',
+    comfort: '/images/packages/comfort.webp?v=20260924-3',
+    premium: '/images/packages/premium.webp?v=20260924-3'
   };
   return images[code] || '';
 }
@@ -236,7 +236,7 @@ function generateClientOffer() {
   .brand{font-size:22px;font-weight:800;color:#d83228}
   h1{font-size:42px;line-height:1;margin:10px 0}
   .desc{color:#6f6964;line-height:1.45;max-width:650px}
-  .hero{width:100%;max-height:480px;object-fit:cover;border-radius:20px;margin:24px 0}
+  .hero{display:block;width:100%;height:auto;max-height:none;object-fit:contain;border-radius:20px;margin:24px 0}
   .price{background:#fff0ed;border-radius:18px;padding:20px;margin:18px 0}
   .price small{display:block;color:#706963;margin-bottom:6px}
   .price strong{font-size:36px}
@@ -257,7 +257,7 @@ function generateClientOffer() {
   button{border:0;border-radius:12px;padding:13px 18px;font-weight:700;cursor:pointer}
   .print{background:#d83228;color:white}
   @media(max-width:700px){.sheet{margin:0;padding:20px;border-radius:0}.grid,.meta{grid-template-columns:1fr}.top{display:block}h1{font-size:34px}}
-  @media print{body{background:white}.sheet{max-width:none;margin:0;padding:0;border-radius:0}.actions{display:none}}
+  @media print{body{background:white}.sheet{max-width:none;margin:0;padding:0;border-radius:0}.actions{display:none}.hero{width:100%;height:auto;max-height:170mm;object-fit:contain;page-break-inside:avoid}}
 </style>
 </head>
 <body>
