@@ -202,9 +202,6 @@ function generateClientOffer() {
     return;
   }
 
-  const clientName = escapeHtml($('clientName').value.trim());
-  const clientPhone = escapeHtml($('clientPhone').value.trim());
-  const objectAddress = escapeHtml($('objectAddress').value.trim());
   const offerComment = escapeHtml($('offerComment').value.trim());
   const imageSrc = packageImage(selectedPackage);
 
@@ -214,12 +211,6 @@ function generateClientOffer() {
       <td>${rub.format(line.amount)}</td>
     </tr>
   `).join('');
-
-  const customerRows = [
-    clientName ? `<div><span>Клиент</span><strong>${clientName}</strong></div>` : '',
-    clientPhone ? `<div><span>Телефон</span><strong>${clientPhone}</strong></div>` : '',
-    objectAddress ? `<div><span>Объект</span><strong>${objectAddress}</strong></div>` : ''
-  ].join('');
 
   const popup = window.open('', '_blank');
   if (!popup) {
@@ -247,10 +238,9 @@ function generateClientOffer() {
   .price small{display:block;color:#706963;margin-bottom:6px}
   .price strong{font-size:36px}
   .meta{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0}
-  .meta>div,.customer>div{padding:12px;background:#faf8f5;border-radius:12px}
-  .meta span,.customer span{display:block;font-size:11px;color:#777}
-  .meta strong,.customer strong{display:block;margin-top:4px}
-  .customer{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .meta>div{padding:12px;background:#faf8f5;border-radius:12px}
+  .meta span{display:block;font-size:11px;color:#777}
+  .meta strong{display:block;margin-top:4px}
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
   .box{border:1px solid #e7e0da;border-radius:16px;padding:18px}
   .box h2{font-size:17px;margin:0 0 10px}
@@ -263,7 +253,7 @@ function generateClientOffer() {
   .actions{max-width:980px;margin:16px auto;display:flex;gap:10px}
   button{border:0;border-radius:12px;padding:13px 18px;font-weight:700;cursor:pointer}
   .print{background:#d83228;color:white}
-  @media(max-width:700px){.sheet{margin:0;padding:20px;border-radius:0}.grid,.meta,.customer{grid-template-columns:1fr}.top{display:block}h1{font-size:34px}}
+  @media(max-width:700px){.sheet{margin:0;padding:20px;border-radius:0}.grid,.meta{grid-template-columns:1fr}.top{display:block}h1{font-size:34px}}
   @media print{body{background:white}.sheet{max-width:none;margin:0;padding:0;border-radius:0}.actions{display:none}}
 </style>
 </head>
@@ -293,8 +283,6 @@ function generateClientOffer() {
     <div><span>Цена за м²</span><strong>${rub.format(latestEstimate.pricePerM2Final)}</strong></div>
     <div><span>Пакет</span><strong>${escapeHtml(pkg.title)}</strong></div>
   </div>
-
-  ${customerRows ? `<div class="customer">${customerRows}</div>` : ''}
 
   <div class="grid">
     <section class="box"><h2>В стоимость включено</h2><ul>${listHtml(pkg.included)}</ul></section>
