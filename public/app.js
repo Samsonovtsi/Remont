@@ -114,6 +114,7 @@ function renderPackages() {
       if (event.target.closest('details')) return;
       selectedPackage = code;
       renderPackages();
+      $('calculator').requestSubmit();
     });
 
     root.appendChild(el);
