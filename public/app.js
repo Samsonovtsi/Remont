@@ -24,21 +24,18 @@ function renderPackages() {
     const el = document.createElement('article');
     el.className = 'package package-' + code + (code === selectedPackage ? ' active' : '');
 
-    const priceText = pkg.calculationMode === 'fixed'
-      ? `от ${rub.format(pkg.minPerM2)} / м²`
-      : `${rub.format(pkg.minPerM2)} — ${rub.format(pkg.maxPerM2)} / м²`;
+    const priceText = `от ${rub.format(pkg.minPerM2)} / м²`;
 
     const included = (pkg.included || []).map(item =>
       `<li><span class="pkg-icon">✓</span><span>${item}</span></li>`
     ).join('');
 
+    const roomFinish = (pkg.roomFinish || []).map(item => `<li>${item}</li>`).join('');
+    const bathroomFinish = (pkg.bathroomFinish || []).map(item => `<li>${item}</li>`).join('');
     const gifts = (pkg.gifts || []).map(item =>
       `<li><span class="gift-icon">✦</span><span>${item}</span></li>`
     ).join('');
-
-    const benefits = (pkg.benefits || []).map(item =>
-      `<span class="benefit-chip">${item}</span>`
-    ).join('');
+    const notes = (pkg.notes || []).map(item => `<li>${item}</li>`).join('');
 
     el.innerHTML = `
       <div class="package-visual">
@@ -53,22 +50,40 @@ function renderPackages() {
 
         <div class="package-price">${priceText}</div>
 
-        <div class="package-content-grid">
-          <div class="package-panel">
-            <h4>В стоимость включено</h4>
-            <ul class="package-list">${included}</ul>
-          </div>
-          <div class="package-panel gift-panel">
-            <h4>В подарок</h4>
-            <ul class="package-list">${gifts}</ul>
-          </div>
+        <div class="package-panel package-summary">
+          <h4>В стоимость включено</h4>
+          <ul class="package-list package-list-inline">${included}</ul>
         </div>
 
-        <div class="package-benefits">${benefits}</div>
+        <details class="package-details">
+          <summary>Состав пакета</summary>
+          <div class="package-content-grid">
+            <div class="package-panel">
+              <h4>Комнаты и общие зоны</h4>
+              <ul class="detail-list">${roomFinish}</ul>
+            </div>
+            <div class="package-panel">
+              <h4>Санузел</h4>
+              <ul class="detail-list">${bathroomFinish}</ul>
+            </div>
+          </div>
+
+          <div class="package-content-grid package-service-grid">
+            <div class="package-panel gift-panel">
+              <h4>В подарок</h4>
+              <ul class="package-list">${gifts}</ul>
+            </div>
+            <div class="package-panel note-panel">
+              <h4>Примечание</h4>
+              <ul class="detail-list">${notes}</ul>
+            </div>
+          </div>
+        </details>
       </div>
     `;
 
-    el.addEventListener('click', () => {
+    el.addEventListener('click', (event) => {
+      if (event.target.closest('details')) return;
       selectedPackage = code;
       renderPackages();
     });
