@@ -21,25 +21,60 @@ function renderPackages() {
   root.innerHTML = '';
 
   Object.entries(packageData).forEach(([code, pkg]) => {
-    const el = document.createElement('div');
-    el.className = 'package' + (code === selectedPackage ? ' active' : '');
-    const mode = pkg.calculationMode === 'smeta' ? 'детальная сметная модель' : 'фиксированная цена «от»';
+    const el = document.createElement('article');
+    el.className = 'package package-' + code + (code === selectedPackage ? ' active' : '');
+
     const priceText = pkg.calculationMode === 'fixed'
       ? `от ${rub.format(pkg.minPerM2)} / м²`
       : `${rub.format(pkg.minPerM2)} — ${rub.format(pkg.maxPerM2)} / м²`;
+
+    const included = (pkg.included || []).map(item =>
+      `<li><span class="pkg-icon">✓</span><span>${item}</span></li>`
+    ).join('');
+
+    const gifts = (pkg.gifts || []).map(item =>
+      `<li><span class="gift-icon">✦</span><span>${item}</span></li>`
+    ).join('');
+
+    const benefits = (pkg.benefits || []).map(item =>
+      `<span class="benefit-chip">${item}</span>`
+    ).join('');
+
     el.innerHTML = `
-      <div class="package-top"><h3>${pkg.title}</h3><div class="radio-dot"></div></div>
-      <p>${pkg.description}</p>
-      <div class="package-price">${priceText}</div>
-      <p><strong>${mode}</strong></p>
+      <div class="package-visual">
+        <div class="package-badge">Пакет ремонта</div>
+        <div class="package-top">
+          <div>
+            <h3>${pkg.title}</h3>
+            <p class="package-description">${pkg.description}</p>
+          </div>
+          <div class="radio-dot" aria-hidden="true"></div>
+        </div>
+
+        <div class="package-price">${priceText}</div>
+
+        <div class="package-content-grid">
+          <div class="package-panel">
+            <h4>В стоимость включено</h4>
+            <ul class="package-list">${included}</ul>
+          </div>
+          <div class="package-panel gift-panel">
+            <h4>В подарок</h4>
+            <ul class="package-list">${gifts}</ul>
+          </div>
+        </div>
+
+        <div class="package-benefits">${benefits}</div>
+      </div>
     `;
+
     el.addEventListener('click', () => {
       selectedPackage = code;
       renderPackages();
     });
+
     root.appendChild(el);
   });
-
 }
 
 $('calculationMode').addEventListener('change', () => {
