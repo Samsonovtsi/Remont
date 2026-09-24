@@ -20,22 +20,16 @@ function escapeHtml(value = '') {
 
 function packagePreviewImage(code) {
   const images = {
-    minimal: '/images/packages/minimal.webp?v=20260924-4',
-    standard: '/images/packages/standard.webp?v=20260924-4',
-    comfort: '/images/packages/comfort.webp?v=20260924-4',
-    premium: '/images/packages/premium.webp?v=20260924-4'
+    minimal: '/images/packages/minimal.png?v=20260924-5',
+    standard: '/images/packages/standard.png?v=20260924-5',
+    comfort: '/images/packages/comfort.png?v=20260924-5',
+    premium: '/images/packages/premium.png?v=20260924-5'
   };
   return images[code] || '';
 }
 
 function packageFullImage(code) {
-  const images = {
-    minimal: '/images/packages/minimal.png?v=20260924-4',
-    standard: '/images/packages/standard.png?v=20260924-4',
-    comfort: '/images/packages/comfort.png?v=20260924-4',
-    premium: '/images/packages/premium.png?v=20260924-4'
-  };
-  return images[code] || '';
+  return packagePreviewImage(code);
 }
 
 function updatePackagePreview() {
@@ -46,6 +40,13 @@ function updatePackagePreview() {
   const src = packagePreviewImage(selectedPackage);
   image.loading = 'eager';
   image.decoding = 'async';
+  image.onerror = () => {
+    image.style.display = 'none';
+    console.error('Не удалось загрузить изображение пакета:', src);
+  };
+  image.onload = () => {
+    image.style.display = 'block';
+  };
   image.src = src;
   image.style.display = src ? 'block' : 'none';
   image.alt = pkg ? `Пример ремонта — пакет ${pkg.title}` : 'Пример ремонта';
@@ -84,7 +85,7 @@ function renderPackages() {
 
     el.innerHTML = `
       <div class="package-visual">
-        ${selectedImage ? `<img class="package-card-image" src="${selectedImage}" loading="lazy" decoding="async" fetchpriority="low" alt="Пример ремонта — пакет ${escapeHtml(pkg.title)}">` : ''}
+        ${selectedImage ? `<img class="package-card-image" src="${selectedImage}" loading="eager" decoding="async" fetchpriority="high" onerror="this.style.display='none'" alt="Пример ремонта — пакет ${escapeHtml(pkg.title)}">` : ''}
         <div class="package-badge">Пакет ремонта</div>
         <div class="package-top">
           <div>
