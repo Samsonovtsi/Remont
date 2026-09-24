@@ -71,6 +71,16 @@
 
         <button id="submitButton" type="submit">Рассчитать смету</button>
         <p id="formError" class="error hidden"></p>
+
+        <div class="section-title"><span>5</span><h2>Предложение клиенту</h2></div>
+        <div class="grid two">
+          <label><span>Имя клиента</span><input id="clientName" type="text" placeholder="Например, Анна" /></label>
+          <label><span>Телефон клиента</span><input id="clientPhone" type="tel" placeholder="+7..." /></label>
+        </div>
+        <label class="offer-field"><span>Адрес объекта</span><input id="objectAddress" type="text" placeholder="Город, улица, дом, квартира" /></label>
+        <label class="offer-field"><span>Комментарий для клиента</span><textarea id="offerComment" rows="3" placeholder="Например: расчёт предварительный, финальная стоимость после замера"></textarea></label>
+        <button id="generateOfferButton" type="button" class="secondary-button">Сформировать предложение для клиента</button>
+        <p class="offer-hint">В клиентском предложении вознаграждение риелтора не показывается.</p>
       </form>
 
       <aside class="card result-card">
@@ -90,12 +100,19 @@
             <div><span>Пакет</span><strong id="packageName">—</strong></div>
           </div>
 
+          <div class="package-preview">
+            <div class="eyebrow">Пример ремонта</div>
+            <img id="selectedPackageImage" alt="Пример ремонта выбранного пакета" />
+            <div id="selectedPackageImageCaption" class="package-preview-caption">—</div>
+          </div>
+
           <div class="breakdown"><h3>Состав сметы</h3><div id="lines"><p class="muted">Заполните параметры и нажмите «Рассчитать смету».</p></div></div>
           <div class="note">Для точного режима внесите фактические площади и количество электроточек.</div>
         </div>
       </aside>
     </section>
   </main>
+  <script src="/package-images.js"></script>
   <script src="/app.js"></script>
 </body>
 </html>
