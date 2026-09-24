@@ -260,7 +260,7 @@ export interface SmetaRates {
   cleanMaterialsFactor: number;
 }
 
-export const SMETA_RATES: Record<'minimal' | 'standard' | 'comfort', SmetaRates> = {
+export const SMETA_RATES: Record<'minimal' | 'standard' | 'comfort' | 'premium', SmetaRates> = {
   minimal: {
     roughWallPerM2: 832.5,
     cleanWallPerM2: 536.5,
@@ -293,6 +293,17 @@ export const SMETA_RATES: Record<'minimal' | 'standard' | 'comfort', SmetaRates>
     plumbingClean: 27_750,
     roughMaterialsFactor: 0.55,
     cleanMaterialsFactor: 1.265
+  },
+  premium: {
+    roughWallPerM2: 3_000,
+    cleanWallPerM2: 1_500,
+    roughFloorPerM2: 700,
+    cleanFloorPerM2: 1_990,
+    tilePerM2: 7_000,
+    plumbingRough: 50_000,
+    plumbingClean: 25_000,
+    roughMaterialsFactor: 0.55,
+    cleanMaterialsFactor: 1.26
   }
 };
 
@@ -314,7 +325,7 @@ export interface ExtraRates {
   demolitionPerM2: number;
 }
 
-export const EXTRA_RATES_BY_PACKAGE: Record<'minimal' | 'standard' | 'comfort', ExtraRates> = {
+export const EXTRA_RATES_BY_PACKAGE: Record<'minimal' | 'standard' | 'comfort' | 'premium', ExtraRates> = {
   minimal: {
     electricalPerM2: 1_850,
     ceilingMaterialPerM2: 715,
@@ -364,6 +375,23 @@ export const EXTRA_RATES_BY_PACKAGE: Record<'minimal' | 'standard' | 'comfort', 
     warmFloorMaterialUpTo3M2: 9_922.8,
     warmFloorInstallPerM2: 4_255,
     balconyTileWorkPerM2: 3_663,
+    demolitionPerM2: 1_100
+  },
+  premium: {
+    electricalPerM2: 1_961,
+    ceilingMaterialPerM2: 605,
+    ceilingInstallPerM2: 1_980,
+    doorMaterial: 22_920,
+    doorInstall: 10_000,
+    doorwayMaterial: 8_200,
+    doorwayInstall: 7_000,
+    lightMaterial: 352.94,
+    lightInstall: 600,
+    socketMaterial: 518,
+    socketInstall: 600,
+    warmFloorMaterialUpTo3M2: 11_576.6,
+    warmFloorInstallPerM2: 4_255,
+    balconyTileWorkPerM2: 3_700,
     demolitionPerM2: 1_100
   }
 };
