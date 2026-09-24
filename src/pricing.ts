@@ -21,8 +21,8 @@ export const PACKAGE_PRICES: Record<PackageCode, PackagePrice> = {
     minPerM2: 17_100,
     maxPerM2: 17_100,
     description: 'Доступный ремонт для создания функциональной основы.',
-    calculationMode: 'fixed',
-    included: ['Работы', 'Черновые материалы', 'Чистовые материалы'],
+    calculationMode: 'smeta',
+    included: ['Работы', 'Черновые материалы', 'Чистовые материалы', 'Доставка', 'Вынос мусора'],
     roomFinish: [
       'Выравнивание стен под правило в местах примыкания',
       'Флизелиновые обои',
@@ -48,7 +48,7 @@ export const PACKAGE_PRICES: Record<PackageCode, PackagePrice> = {
     notes: [
       'Электрика рассчитывается дополнительно',
       'Освещение рассчитывается дополнительно',
-      'Возможно выполнение дополнительных работ по желанию клиента'
+      'Дополнительные работы рассчитываются по фактическим объёмам'
     ]
   },
   standard: {
@@ -57,7 +57,7 @@ export const PACKAGE_PRICES: Record<PackageCode, PackagePrice> = {
     maxPerM2: 22_700,
     description: 'Быстрый и эффективный способ обновить интерьер с доступными материалами.',
     calculationMode: 'smeta',
-    included: ['Работы', 'Черновые материалы', 'Чистовые материалы', 'Сантехника'],
+    included: ['Работы', 'Черновые материалы', 'Чистовые материалы', 'Сантехника', 'Доставка', 'Вынос мусора'],
     roomFinish: [
       'Выравнивание стен под правило в местах примыкания',
       'Флизелиновые обои',
@@ -92,7 +92,7 @@ export const PACKAGE_PRICES: Record<PackageCode, PackagePrice> = {
     notes: [
       'Электрика рассчитывается дополнительно',
       'Освещение рассчитывается дополнительно',
-      'Возможно выполнение дополнительных работ по желанию клиента'
+      'Дополнительные работы рассчитываются по фактическим объёмам'
     ]
   },
   comfort: {
@@ -101,7 +101,7 @@ export const PACKAGE_PRICES: Record<PackageCode, PackagePrice> = {
     maxPerM2: 29_100,
     description: 'Продуманное решение с улучшенными материалами, деталями и атмосферой.',
     calculationMode: 'smeta',
-    included: ['Работы', 'Черновые материалы', 'Чистовые материалы', 'Сантехника'],
+    included: ['Работы', 'Черновые материалы', 'Чистовые материалы', 'Сантехника', 'Доставка', 'Вынос мусора'],
     roomFinish: [
       'Подготовка и выравнивание всех поверхностей под правило',
       'Обои под покраску и окрашивание обоев',
@@ -136,7 +136,7 @@ export const PACKAGE_PRICES: Record<PackageCode, PackagePrice> = {
     notes: [
       'Электрика рассчитывается дополнительно',
       'Освещение рассчитывается дополнительно',
-      'Возможно выполнение дополнительных работ по желанию клиента'
+      'Дополнительные работы рассчитываются по фактическим объёмам'
     ]
   },
   premium: {
@@ -145,7 +145,7 @@ export const PACKAGE_PRICES: Record<PackageCode, PackagePrice> = {
     maxPerM2: 42_800,
     description: 'Комплексное преображение пространства с вниманием к каждой детали.',
     calculationMode: 'fixed',
-    included: ['Работы', 'Черновые материалы', 'Чистовые материалы', 'Сантехника'],
+    included: ['Работы', 'Черновые материалы', 'Чистовые материалы', 'Сантехника', 'Доставка', 'Вынос мусора'],
     roomFinish: [
       'Подготовка и выравнивание всех поверхностей под маяк',
       'Окрашивание стен + одна акцентная стена с декоративной штукатуркой',
@@ -180,7 +180,7 @@ export const PACKAGE_PRICES: Record<PackageCode, PackagePrice> = {
     notes: [
       'Электрика рассчитывается дополнительно',
       'Освещение рассчитывается дополнительно',
-      'Возможно выполнение дополнительных работ по желанию клиента'
+      'Дополнительные работы рассчитываются по фактическим объёмам'
     ]
   }
 };
@@ -189,17 +189,19 @@ export const AGENT_REWARD_RATE = 0.05;
 export const VAT_RATE = 0.05;
 export const DELIVERY_RATE = 0.10;
 
+// В предоставленных сметах нет подтверждённых процентных надбавок
+// по типу/состоянию объекта. Поэтому эти параметры не меняют цену автоматически.
 export const CONDITION_FACTOR: Record<Condition, number> = {
   new_build: 1.00,
-  secondary_good: 1.05,
-  secondary_worn: 1.15,
-  shell: 1.10
+  secondary_good: 1.00,
+  secondary_worn: 1.00,
+  shell: 1.00
 };
 
 export const PROPERTY_FACTOR: Record<PropertyType, number> = {
   apartment: 1.00,
-  house: 1.08,
-  commercial: 0.95
+  house: 1.00,
+  commercial: 1.00
 };
 
 export interface SmetaRates {
@@ -214,7 +216,18 @@ export interface SmetaRates {
   cleanMaterialsFactor: number;
 }
 
-export const SMETA_RATES: Record<'standard' | 'comfort', SmetaRates> = {
+export const SMETA_RATES: Record<'minimal' | 'standard' | 'comfort', SmetaRates> = {
+  minimal: {
+    roughWallPerM2: 832.5,
+    cleanWallPerM2: 536.5,
+    roughFloorPerM2: 462.5,
+    cleanFloorPerM2: 823.25,
+    tilePerM2: 3_700,
+    plumbingRough: 40_700,
+    plumbingClean: 27_750,
+    roughMaterialsFactor: 0.44,
+    cleanMaterialsFactor: 0.99
+  },
   standard: {
     roughWallPerM2: 962,
     cleanWallPerM2: 536.5,
@@ -239,19 +252,81 @@ export const SMETA_RATES: Record<'standard' | 'comfort', SmetaRates> = {
   }
 };
 
-export const EXTRA_RATES = {
-  electricalPerM2: 1_961,
-  ceilingMaterialPerM2: 319,
-  doorMaterial: 22_920,
-  doorInstall: 10_000,
-  doorwayMaterial: 8_200,
-  doorwayInstall: 7_000,
-  lightMaterial: 352.94,
-  lightInstall: 600,
-  socketMaterial: 518,
-  socketInstall: 500,
-  warmFloorMaterialUpTo3M2: 9_922.8,
-  warmFloorInstallPerM2: 4_255,
-  balconyTileWorkPerM2: 3_663,
-  demolitionPerM2: 1_100
+export interface ExtraRates {
+  electricalPerM2: number;
+  ceilingMaterialPerM2: number;
+  ceilingInstallPerM2: number;
+  doorMaterial: number;
+  doorInstall: number;
+  doorwayMaterial: number;
+  doorwayInstall: number;
+  lightMaterial: number;
+  lightInstall: number;
+  socketMaterial: number;
+  socketInstall: number;
+  warmFloorMaterialUpTo3M2: number;
+  warmFloorInstallPerM2: number;
+  balconyTileWorkPerM2: number;
+  demolitionPerM2: number;
+}
+
+export const EXTRA_RATES_BY_PACKAGE: Record<'minimal' | 'standard' | 'comfort', ExtraRates> = {
+  minimal: {
+    electricalPerM2: 1_850,
+    ceilingMaterialPerM2: 715,
+    ceilingInstallPerM2: 2_560,
+    doorMaterial: 7_521.86,
+    doorInstall: 10_000,
+    doorwayMaterial: 4_720,
+    doorwayInstall: 7_000,
+    lightMaterial: 187.58,
+    lightInstall: 600,
+    socketMaterial: 209,
+    socketInstall: 600,
+    warmFloorMaterialUpTo3M2: 9_922.8,
+    warmFloorInstallPerM2: 4_255,
+    balconyTileWorkPerM2: 3_700,
+    demolitionPerM2: 1_100
+  },
+  standard: {
+    electricalPerM2: 1_961,
+    ceilingMaterialPerM2: 319,
+    ceilingInstallPerM2: 0,
+    doorMaterial: 22_920,
+    doorInstall: 10_000,
+    doorwayMaterial: 8_200,
+    doorwayInstall: 7_000,
+    lightMaterial: 352.94,
+    lightInstall: 600,
+    socketMaterial: 518,
+    socketInstall: 500,
+    warmFloorMaterialUpTo3M2: 9_922.8,
+    warmFloorInstallPerM2: 4_255,
+    balconyTileWorkPerM2: 3_663,
+    demolitionPerM2: 1_100
+  },
+  comfort: {
+    electricalPerM2: 1_961,
+    ceilingMaterialPerM2: 319,
+    ceilingInstallPerM2: 0,
+    doorMaterial: 22_920,
+    doorInstall: 10_000,
+    doorwayMaterial: 8_200,
+    doorwayInstall: 7_000,
+    lightMaterial: 352.94,
+    lightInstall: 600,
+    socketMaterial: 518,
+    socketInstall: 500,
+    warmFloorMaterialUpTo3M2: 9_922.8,
+    warmFloorInstallPerM2: 4_255,
+    balconyTileWorkPerM2: 3_663,
+    demolitionPerM2: 1_100
+  }
+};
+
+// Ориентир для отдельной коммерческой плиточной сметы (Новосёлов 92).
+export const COMMERCIAL_TILE_RATES = {
+  floorPrimerWorkPerM2: 120,
+  tileWorkPerM2: 3_552,
+  tileMaterialPerM2: 1_200
 } as const;
