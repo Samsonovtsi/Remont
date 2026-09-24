@@ -404,7 +404,8 @@ function calculateQuickOfficialEstimate(input: EstimateRequest): EstimateResult 
 
 function calculateFixedPackageEstimate(input: EstimateRequest): EstimateResult {
   const pkg = PACKAGE_PRICES[input.package];
-  const basePricePerM2 = pkg.minPerM2;
+  const official = getOfficialApartmentPackageRate(input.areaM2, input.package);
+  const basePricePerM2 = official.rate;
   const packageTotal = input.areaM2 * basePricePerM2;
   const lines: EstimateLine[] = [{
     code: 'package_fixed',
@@ -475,9 +476,12 @@ function calculateFixedPackageEstimate(input: EstimateRequest): EstimateResult {
       sockets: geometry.sockets
     },
     disclaimer:
-      'Для Премиум используется пакетная цена «от ' +
+      'Для Премиум используется официальный тариф техкарты для диапазона ' +
+      official.band +
+      ': ' +
       basePricePerM2.toLocaleString('ru-RU') +
-      ' ₽/м²». В предоставленных сметах нет постатейной разбивки Премиум на работы и материалы, поэтому 5% риелтора рассчитываются только от отдельно посчитанных дополнительных работ (если они выбраны), а не от базовой пакетной суммы.'
+      ' ₽/м². В переданных сметах нет достаточной постатейной разбивки Премиум для отделения чистой стоимости работ от материалов, поэтому 5% риелтора рассчитываются только от отдельно посчитанных дополнительных работ.' +
+      (official.outsideOfficialRange ? ' Площадь вне диапазона 20–89 м² — применён ближайший тариф как ориентир.' : '')
   };
 }
 
