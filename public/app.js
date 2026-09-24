@@ -296,7 +296,7 @@ function generateClientOffer() {
 
   <div class="meta">
     <div><span>Площадь</span><strong>${latestEstimate.areaM2} м²</strong></div>
-    <div><span>Цена за м²</span><strong>${rub.format(latestEstimate.pricePerM2Final)}</strong></div>
+    <div><span>Итоговая цена за м²</span><strong>${rub.format(latestEstimate.pricePerM2Final)}</strong></div>
     <div><span>Пакет</span><strong>${escapeHtml(pkg.title)}</strong></div>
   </div>
 
