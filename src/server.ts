@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { calculateEstimate } from './calculator.js';
 import { PACKAGE_PRICES, AGENT_REWARD_RATE } from './pricing.js';
 import { estimateRequestSchema } from './schema.js';
+import { appendFeedback, feedbackSchema } from './feedback.js';
 
 const app = Fastify({ logger: true });
 
@@ -44,6 +45,28 @@ app.post('/api/v1/estimate', async (request, reply) => {
 
     request.log.error(error);
     return reply.code(500).send({ error: 'INTERNAL_ERROR' });
+  }
+});
+
+
+app.post('/api/v1/feedback', async (request, reply) => {
+  try {
+    const feedback = feedbackSchema.parse(request.body);
+    await appendFeedback(feedback);
+    return { ok: true };
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return reply.code(400).send({
+        error: 'VALIDATION_ERROR',
+        details: error.flatten()
+      });
+    }
+
+    request.log.error(error);
+    return reply.code(503).send({
+      error: 'FEEDBACK_NOT_AVAILABLE',
+      message: error instanceof Error ? error.message : 'Не удалось сохранить обратную связь'
+    });
   }
 });
 
