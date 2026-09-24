@@ -19,7 +19,13 @@ function escapeHtml(value = '') {
 }
 
 function packageImage(code) {
-  return window.PACKAGE_IMAGES?.[code] || '';
+  const images = {
+    minimal: '/images/packages/minimal.webp',
+    standard: '/images/packages/standard.webp',
+    comfort: '/images/packages/comfort.webp',
+    premium: '/images/packages/premium.webp'
+  };
+  return images[code] || '';
 }
 
 function updatePackagePreview() {
