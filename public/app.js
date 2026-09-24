@@ -40,26 +40,7 @@ function renderPackages() {
     root.appendChild(el);
   });
 
-  // Уровень комплектации больше не используется ни для одного пакета.
-  $('finishLevel').closest('.range-wrap').style.display = 'none';
-
-  const fixedPackage = packageData[selectedPackage]?.calculationMode === 'fixed';
-  if (fixedPackage && $('calculationMode').value === 'exact') {
-    // Для Минимального/Премиум точные геометрические поля базового пакета
-    // не влияют на цену из буклета; оставляем exact только для электрики.
-    $('exactFields').classList.remove('hidden');
-  }
 }
-
-function finishText(value) {
-  if (value < 0.34) return 'Базовый';
-  if (value < 0.67) return 'Средний';
-  return 'Расширенный';
-}
-
-$('finishLevel').addEventListener('input', (event) => {
-  $('finishLabel').textContent = finishText(Number(event.target.value));
-});
 
 $('calculationMode').addEventListener('change', () => {
   $('exactFields').classList.toggle('hidden', $('calculationMode').value !== 'exact');
@@ -86,7 +67,6 @@ function payload() {
     needsCeiling: $('needsCeiling').checked,
     hasBalcony: $('hasBalcony').checked,
     warmFloorM2: num('warmFloorM2'),
-    finishLevel: num('finishLevel'),
     ...(exact ? {
       roughWallAreaM2: num('roughWallAreaM2'),
       cleanWallAreaM2: num('cleanWallAreaM2'),
