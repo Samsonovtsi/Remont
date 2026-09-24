@@ -2,6 +2,7 @@ import {
   AGENT_REWARD_RATE,
   DELIVERY_RATE,
   EXTRA_RATES_BY_PACKAGE,
+  getOfficialApartmentPackageRate,
   PACKAGE_PRICES,
   SMETA_RATES,
   VAT_RATE
@@ -282,6 +283,125 @@ function calculateSmetaEstimate(input: EstimateRequest): EstimateResult {
   };
 }
 
+function calculateQuickOfficialEstimate(input: EstimateRequest): EstimateResult {
+  const pkg = PACKAGE_PRICES[input.package];
+  const official = getOfficialApartmentPackageRate(input.areaM2, input.package);
+  const basePackageTotal = input.areaM2 * official.rate;
+  const lines: EstimateLine[] = [{
+    code: 'official_package',
+    title: pkg.title + ': пакетная стоимость по техкарте (' + official.band + ')',
+    amount: roundRub(basePackageTotal),
+    group: 'materials'
+  }];
+
+  // Электрика и освещение в техкарте прямо указаны как дополнительные.
+  const extraRateCode = input.package === 'minimal' ? 'minimal' : input.package === 'standard' ? 'standard' : 'comfort';
+  const extras = EXTRA_RATES_BY_PACKAGE[extraRateCode];
+  const geometry = estimateGeometry(input);
+
+  let extraWorks = 0;
+  let extraMaterials = 0;
+
+  if (input.needsFullElectrical) {
+    const electricalWorks =
+      geometry.electricalAreaM2 * extras.electricalPerM2 +
+      geometry.lights * extras.lightInstall +
+      geometry.sockets * extras.socketInstall;
+
+    const electricalMaterials =
+      geometry.lights * extras.lightMaterial +
+      geometry.sockets * extras.socketMaterial;
+
+    extraWorks += electricalWorks;
+    extraMaterials += electricalMaterials;
+
+    lines.push({
+      code: 'electrical_extra_works',
+      title: 'Электрика и освещение — дополнительные работы',
+      amount: roundRub(electricalWorks),
+      group: 'works'
+    });
+
+    if (electricalMaterials > 0) {
+      lines.push({
+        code: 'electrical_extra_materials',
+        title: 'Электрика и освещение — дополнительные материалы',
+        amount: roundRub(electricalMaterials),
+        group: 'materials'
+      });
+    }
+  }
+
+  if (input.warmFloorM2 > 0) {
+    const warmFloorWorks = input.warmFloorM2 * extras.warmFloorInstallPerM2;
+    const warmFloorMaterials =
+      Math.ceil(input.warmFloorM2 / 3) * extras.warmFloorMaterialUpTo3M2;
+
+    extraWorks += warmFloorWorks;
+    extraMaterials += warmFloorMaterials;
+
+    lines.push({
+      code: 'warm_floor_extra',
+      title: 'Тёплый пол — дополнительные работы и материалы',
+      amount: roundRub(warmFloorWorks + warmFloorMaterials),
+      group: 'adjustment'
+    });
+  }
+
+  if (input.needsDemolition && geometry.demolitionAreaM2 > 0) {
+    const demolitionWorks = geometry.demolitionAreaM2 * extras.demolitionPerM2;
+    extraWorks += demolitionWorks;
+    lines.push({
+      code: 'demolition_extra',
+      title: 'Демонтаж — дополнительные работы',
+      amount: roundRub(demolitionWorks),
+      group: 'works'
+    });
+  }
+
+  const clientTotal = roundRub(basePackageTotal + extraWorks + extraMaterials);
+
+  // Для быстрого режима база 5% берётся только из отдельно рассчитанных работ.
+  // Базовая пакетная цена техкарты не разделяет чисто труд и материалы достаточно однозначно.
+  const agentRewardBase = roundRub(extraWorks);
+  const agentReward = roundRub(agentRewardBase * AGENT_REWARD_RATE);
+
+  const rangeNote = official.outsideOfficialRange
+    ? ' В техкарте есть диапазоны только 20–89 м²; для этой площади применён ближайший тарифный диапазон как ориентир.'
+    : '';
+
+  return {
+    currency: 'RUB',
+    areaM2: input.areaM2,
+    package: input.package,
+    calculationMode: 'range',
+    measurementMode: 'quick',
+    basePricePerM2: official.rate,
+    lines,
+    worksTotal: roundRub(extraWorks),
+    materialsTotal: roundRub(basePackageTotal + extraMaterials),
+    deliveryTotal: 0,
+    subtotalBeforeVat: clientTotal,
+    vatRate: 0,
+    vat: 0,
+    estimateBeforeReward: clientTotal,
+    agentRewardRate: AGENT_REWARD_RATE,
+    agentReward,
+    agentRewardBase,
+    clientTotal,
+    pricePerM2Final: roundRub(clientTotal / input.areaM2),
+    assumptions: {
+      electricalAreaM2: round1(geometry.electricalAreaM2),
+      demolitionAreaM2: round1(geometry.demolitionAreaM2),
+      lights: geometry.lights,
+      sockets: geometry.sockets
+    },
+    disclaimer:
+      'Быстрый расчёт использует официальную матрицу 2026 из «Тех карты менеджера»: пакетная цена включает работы, черновые и чистовые материалы, без дополнительных услуг. Электрика и освещение считаются отдельно. Вознаграждение риелтора = 5% только от отдельно рассчитанных работ.' +
+      rangeNote
+  };
+}
+
 function calculateFixedPackageEstimate(input: EstimateRequest): EstimateResult {
   const pkg = PACKAGE_PRICES[input.package];
   const basePricePerM2 = pkg.minPerM2;
@@ -362,8 +482,13 @@ function calculateFixedPackageEstimate(input: EstimateRequest): EstimateResult {
 }
 
 export function calculateEstimate(input: EstimateRequest): EstimateResult {
+  if (input.calculationMode === 'quick') {
+    return calculateQuickOfficialEstimate(input);
+  }
+
   if (input.package === 'minimal' || input.package === 'standard' || input.package === 'comfort') {
     return calculateSmetaEstimate(input);
   }
+
   return calculateFixedPackageEstimate(input);
 }
