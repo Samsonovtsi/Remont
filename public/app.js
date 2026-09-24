@@ -9,6 +9,7 @@ let packageData = {};
 let latestEstimate = null;
 let autoCalcTimer = null;
 let estimateAbortController = null;
+let feedbackSending = false;
 const $ = (id) => document.getElementById(id);
 
 function escapeHtml(value = '') {
@@ -189,6 +190,11 @@ function payload() {
 
 function renderResult(result) {
   latestEstimate = result;
+  const feedbackStatus = $('feedbackStatus');
+  if (feedbackStatus) {
+    feedbackStatus.textContent = '';
+    feedbackStatus.className = 'feedback-status';
+  }
   $('estimateTotal').textContent = rub.format(result.clientTotal);
   $('rewardTotal').textContent = result.agentRewardBase > 0 ? rub.format(result.agentReward) : '—';
   $('worksTotal').textContent = result.worksTotal > 0 ? rub.format(result.worksTotal) : '—';
@@ -203,6 +209,83 @@ function renderResult(result) {
   document.querySelector('.note').textContent = result.disclaimer;
 }
 
+
+
+function setFeedbackStatus(message, state = '') {
+  const status = $('feedbackStatus');
+  if (!status) return;
+  status.textContent = message;
+  status.className = 'feedback-status' + (state ? ' ' + state : '');
+}
+
+async function sendFeedback(status) {
+  if (!latestEstimate || feedbackSending) return;
+
+  feedbackSending = true;
+  const okButton = $('feedbackOkButton');
+  const sendButton = $('feedbackSendButton');
+  if (okButton) okButton.disabled = true;
+  if (sendButton) sendButton.disabled = true;
+  setFeedbackStatus('Сохраняем...');
+
+  const expectedRaw = $('feedbackExpectedTotal')?.value;
+  const expectedTotal = expectedRaw ? Number(expectedRaw) : undefined;
+
+  const body = {
+    status,
+    issueType: status === 'error' ? $('feedbackIssueType').value : '',
+    expectedTotal: Number.isFinite(expectedTotal) ? expectedTotal : undefined,
+    comment: status === 'error' ? $('feedbackComment').value.trim() : '',
+    input: payload(),
+    estimate: latestEstimate
+  };
+
+  try {
+    const response = await fetch('/api/v1/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Не удалось сохранить обратную связь');
+    }
+
+    setFeedbackStatus(
+      status === 'ok'
+        ? 'Спасибо. Отметка сохранена.'
+        : 'Спасибо. Ошибка записана в таблицу.',
+      'success'
+    );
+
+    if (status === 'error') {
+      $('feedbackForm').classList.add('hidden');
+      $('feedbackExpectedTotal').value = '';
+      $('feedbackComment').value = '';
+    }
+  } catch (err) {
+    setFeedbackStatus(err.message || 'Не удалось отправить обратную связь', 'error-state');
+  } finally {
+    feedbackSending = false;
+    if (okButton) okButton.disabled = false;
+    if (sendButton) sendButton.disabled = false;
+  }
+}
+
+function openFeedbackForm() {
+  if (!latestEstimate) {
+    setFeedbackStatus('Сначала дождитесь расчёта сметы.', 'error-state');
+    return;
+  }
+  $('feedbackForm').classList.remove('hidden');
+  $('feedbackExpectedTotal').focus();
+}
+
+function closeFeedbackForm() {
+  $('feedbackForm').classList.add('hidden');
+  setFeedbackStatus('');
+}
 
 function listHtml(items) {
   return (items || []).map(item => `<li>${escapeHtml(item)}</li>`).join('');
@@ -385,6 +468,11 @@ $('calculator').querySelectorAll('input, select').forEach((field) => {
 });
 
 $('generateOfferButton').addEventListener('click', generateClientOffer);
+
+$('feedbackOkButton').addEventListener('click', () => sendFeedback('ok'));
+$('feedbackErrorButton').addEventListener('click', openFeedbackForm);
+$('feedbackSendButton').addEventListener('click', () => sendFeedback('error'));
+$('feedbackCancelButton').addEventListener('click', closeFeedbackForm);
 
 (async () => {
   try {
