@@ -117,4 +117,51 @@ describe('renovation calculator', () => {
     expect(result.clientTotal).toBe(80 * 42_800);
     expect(result.agentReward).toBe(0);
   });
+  it('uses official 2026 tech-card package rate by apartment area in quick mode', () => {
+    const input = estimateRequestSchema.parse({
+      areaM2: 55,
+      package: 'comfort',
+      propertyType: 'apartment',
+      condition: 'new_build',
+      calculationMode: 'quick',
+      bathrooms: 1,
+      rooms: 2,
+      doors: 2,
+      doorways: 1,
+      needsFullElectrical: false,
+      needsFullPlumbing: true,
+      needsDemolition: false,
+      needsCeiling: true,
+      hasBalcony: false,
+      warmFloorM2: 0
+    });
+    const result = calculateEstimate(input);
+    expect(result.basePricePerM2).toBe(35_100);
+    expect(result.clientTotal).toBe(55 * 35_100);
+    expect(result.measurementMode).toBe('quick');
+  });
+
+  it('uses official Premium area band instead of a single flat minimum', () => {
+    const input = estimateRequestSchema.parse({
+      areaM2: 35,
+      package: 'premium',
+      propertyType: 'apartment',
+      condition: 'new_build',
+      calculationMode: 'quick',
+      bathrooms: 1,
+      rooms: 1,
+      doors: 1,
+      doorways: 0,
+      needsFullElectrical: false,
+      needsFullPlumbing: false,
+      needsDemolition: false,
+      needsCeiling: true,
+      hasBalcony: false,
+      warmFloorM2: 0
+    });
+    const result = calculateEstimate(input);
+    expect(result.basePricePerM2).toBe(53_900);
+    expect(result.clientTotal).toBe(35 * 53_900);
+  });
+
 });
