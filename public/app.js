@@ -6,7 +6,33 @@ const rub = new Intl.NumberFormat('ru-RU', {
 
 let selectedPackage = 'comfort';
 let packageData = {};
+let latestEstimate = null;
 const $ = (id) => document.getElementById(id);
+
+function escapeHtml(value = '') {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
+function packageImage(code) {
+  return window.PACKAGE_IMAGES?.[code] || '';
+}
+
+function updatePackagePreview() {
+  const pkg = packageData[selectedPackage];
+  const image = $('selectedPackageImage');
+  if (!image) return;
+
+  const src = packageImage(selectedPackage);
+  image.src = src;
+  image.style.display = src ? 'block' : 'none';
+  image.alt = pkg ? `Пример ремонта — пакет ${pkg.title}` : 'Пример ремонта';
+  $('selectedPackageImageCaption').textContent = pkg ? `Пакет «${pkg.title}»` : '—';
+}
 
 async function loadPackages() {
   const response = await fetch('/api/v1/packages');
@@ -36,9 +62,11 @@ function renderPackages() {
       `<li><span class="gift-icon">✦</span><span>${item}</span></li>`
     ).join('');
     const notes = (pkg.notes || []).map(item => `<li>${item}</li>`).join('');
+    const selectedImage = code === selectedPackage ? packageImage(code) : '';
 
     el.innerHTML = `
       <div class="package-visual">
+        ${selectedImage ? `<img class="package-card-image" src="${selectedImage}" alt="Пример ремонта — пакет ${escapeHtml(pkg.title)}">` : ''}
         <div class="package-badge">Пакет ремонта</div>
         <div class="package-top">
           <div>
@@ -90,6 +118,8 @@ function renderPackages() {
 
     root.appendChild(el);
   });
+
+  updatePackagePreview();
 }
 
 $('calculationMode').addEventListener('change', () => {
@@ -133,6 +163,7 @@ function payload() {
 }
 
 function renderResult(result) {
+  latestEstimate = result;
   $('estimateTotal').textContent = rub.format(result.clientTotal);
   $('rewardTotal').textContent = result.agentRewardBase > 0 ? rub.format(result.agentReward) : '—';
   $('worksTotal').textContent = result.worksTotal > 0 ? rub.format(result.worksTotal) : '—';
@@ -145,6 +176,140 @@ function renderResult(result) {
   `).join('');
 
   document.querySelector('.note').textContent = result.disclaimer;
+}
+
+
+function listHtml(items) {
+  return (items || []).map(item => `<li>${escapeHtml(item)}</li>`).join('');
+}
+
+function generateClientOffer() {
+  if (!latestEstimate) {
+    alert('Сначала рассчитайте смету.');
+    return;
+  }
+
+  const pkg = packageData[selectedPackage];
+  if (!pkg) {
+    alert('Не удалось определить выбранный пакет.');
+    return;
+  }
+
+  const clientName = escapeHtml($('clientName').value.trim());
+  const clientPhone = escapeHtml($('clientPhone').value.trim());
+  const objectAddress = escapeHtml($('objectAddress').value.trim());
+  const offerComment = escapeHtml($('offerComment').value.trim());
+  const imageSrc = packageImage(selectedPackage);
+
+  const estimateRows = (latestEstimate.lines || []).map(line => `
+    <tr>
+      <td>${escapeHtml(line.title)}</td>
+      <td>${rub.format(line.amount)}</td>
+    </tr>
+  `).join('');
+
+  const customerRows = [
+    clientName ? `<div><span>Клиент</span><strong>${clientName}</strong></div>` : '',
+    clientPhone ? `<div><span>Телефон</span><strong>${clientPhone}</strong></div>` : '',
+    objectAddress ? `<div><span>Объект</span><strong>${objectAddress}</strong></div>` : ''
+  ].join('');
+
+  const popup = window.open('', '_blank');
+  if (!popup) {
+    alert('Браузер заблокировал новое окно. Разрешите всплывающие окна для сайта и повторите.');
+    return;
+  }
+
+  popup.document.open();
+  popup.document.write(`<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Предложение по ремонту — ${escapeHtml(pkg.title)}</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Arial,sans-serif;color:#181818;background:#f3f0ec}
+  .sheet{max-width:980px;margin:24px auto;background:white;padding:38px;border-radius:24px}
+  .top{display:flex;justify-content:space-between;gap:20px;align-items:flex-start}
+  .brand{font-size:22px;font-weight:800;color:#d83228}
+  h1{font-size:42px;line-height:1;margin:10px 0}
+  .desc{color:#6f6964;line-height:1.45;max-width:650px}
+  .hero{width:100%;max-height:480px;object-fit:cover;border-radius:20px;margin:24px 0}
+  .price{background:#fff0ed;border-radius:18px;padding:20px;margin:18px 0}
+  .price small{display:block;color:#706963;margin-bottom:6px}
+  .price strong{font-size:36px}
+  .meta{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0}
+  .meta>div,.customer>div{padding:12px;background:#faf8f5;border-radius:12px}
+  .meta span,.customer span{display:block;font-size:11px;color:#777}
+  .meta strong,.customer strong{display:block;margin-top:4px}
+  .customer{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
+  .box{border:1px solid #e7e0da;border-radius:16px;padding:18px}
+  .box h2{font-size:17px;margin:0 0 10px}
+  ul{padding-left:20px;margin:0;line-height:1.5;font-size:13px}
+  table{width:100%;border-collapse:collapse;margin-top:10px}
+  td{padding:9px 0;border-bottom:1px solid #eee;font-size:13px}
+  td:last-child{text-align:right;font-weight:700;white-space:nowrap}
+  .comment{margin-top:18px;padding:15px;background:#faf8f5;border-radius:14px;white-space:pre-wrap}
+  .disclaimer{margin-top:18px;font-size:11px;line-height:1.45;color:#777}
+  .actions{max-width:980px;margin:16px auto;display:flex;gap:10px}
+  button{border:0;border-radius:12px;padding:13px 18px;font-weight:700;cursor:pointer}
+  .print{background:#d83228;color:white}
+  @media(max-width:700px){.sheet{margin:0;padding:20px;border-radius:0}.grid,.meta,.customer{grid-template-columns:1fr}.top{display:block}h1{font-size:34px}}
+  @media print{body{background:white}.sheet{max-width:none;margin:0;padding:0;border-radius:0}.actions{display:none}}
+</style>
+</head>
+<body>
+<div class="actions">
+  <button class="print" onclick="window.print()">Печать / сохранить PDF</button>
+  <button onclick="window.close()">Закрыть</button>
+</div>
+<main class="sheet">
+  <div class="top">
+    <div>
+      <div class="brand">Этажи.Ремонт</div>
+      <h1>Пакет «${escapeHtml(pkg.title)}»</h1>
+      <div class="desc">${escapeHtml(pkg.description)}</div>
+    </div>
+  </div>
+
+  ${imageSrc ? `<img class="hero" src="${imageSrc}" alt="Пример ремонта — пакет ${escapeHtml(pkg.title)}">` : ''}
+
+  <div class="price">
+    <small>Предварительная стоимость ремонта</small>
+    <strong>${rub.format(latestEstimate.clientTotal)}</strong>
+  </div>
+
+  <div class="meta">
+    <div><span>Площадь</span><strong>${latestEstimate.areaM2} м²</strong></div>
+    <div><span>Цена за м²</span><strong>${rub.format(latestEstimate.pricePerM2Final)}</strong></div>
+    <div><span>Пакет</span><strong>${escapeHtml(pkg.title)}</strong></div>
+  </div>
+
+  ${customerRows ? `<div class="customer">${customerRows}</div>` : ''}
+
+  <div class="grid">
+    <section class="box"><h2>В стоимость включено</h2><ul>${listHtml(pkg.included)}</ul></section>
+    <section class="box"><h2>В подарок</h2><ul>${listHtml(pkg.gifts)}</ul></section>
+    <section class="box"><h2>Комнаты и общие зоны</h2><ul>${listHtml(pkg.roomFinish)}</ul></section>
+    <section class="box"><h2>Санузел</h2><ul>${listHtml(pkg.bathroomFinish)}</ul></section>
+  </div>
+
+  <section class="box" style="margin-top:14px"><h2>Примечания по пакету</h2><ul>${listHtml(pkg.notes)}</ul></section>
+
+  <section class="box" style="margin-top:14px">
+    <h2>Состав расчёта</h2>
+    <table>${estimateRows}</table>
+  </section>
+
+  ${offerComment ? `<div class="comment"><strong>Комментарий:</strong><br>${offerComment}</div>` : ''}
+
+  <div class="disclaimer">${escapeHtml(latestEstimate.disclaimer || 'Предварительный расчёт. Финальная стоимость уточняется после замера.')}</div>
+</main>
+</body>
+</html>`);
+  popup.document.close();
 }
 
 $('calculator').addEventListener('submit', async (event) => {
@@ -172,6 +337,8 @@ $('calculator').addEventListener('submit', async (event) => {
     button.textContent = 'Рассчитать смету';
   }
 });
+
+$('generateOfferButton').addEventListener('click', generateClientOffer);
 
 (async () => {
   try {
