@@ -275,20 +275,61 @@ function calculateSmetaEstimate(input: EstimateRequest): EstimateResult {
   };
 }
 
-function calculateRangeEstimate(input: EstimateRequest): EstimateResult {
+function calculateFixedPackageEstimate(input: EstimateRequest): EstimateResult {
   const pkg = PACKAGE_PRICES[input.package];
-  const basePricePerM2 =
-    pkg.minPerM2 + (pkg.maxPerM2 - pkg.minPerM2) * input.finishLevel;
+  const basePricePerM2 = pkg.minPerM2;
 
-  let subtotal = input.areaM2 * basePricePerM2;
-  subtotal *= CONDITION_FACTOR[input.condition] * PROPERTY_FACTOR[input.propertyType];
+  // В буклете Минимальный и Премиум заданы как фиксированная стартовая
+  // стоимость "от ... ₽/м²" без уровней комплектации.
+  let packageTotal = input.areaM2 * basePricePerM2;
+  packageTotal *= CONDITION_FACTOR[input.condition] * PROPERTY_FACTOR[input.propertyType];
 
-  const clientTotal = roundRub(subtotal);
+  const lines: EstimateLine[] = [{
+    code: 'package_fixed',
+    title: pkg.title + ': базовая стоимость по пакету',
+    amount: roundRub(packageTotal),
+    group: 'materials'
+  }];
 
-  // Для пакетного диапазона Минимальный/Премиум нет постатейной разбивки
-  // "работы / материалы", поэтому точное вознаграждение вычислить нельзя.
-  const agentRewardBase = 0;
-  const agentReward = 0;
+  // В буклете прямо указано, что электрика и освещение считаются дополнительно.
+  let knownExtraWorks = 0;
+  let knownExtraMaterials = 0;
+
+  if (input.needsFullElectrical) {
+    const lights = input.calculationMode === 'exact'
+      ? (input.lights ?? 0)
+      : Math.max(1, Math.round(input.areaM2 * 0.58));
+    const sockets = input.calculationMode === 'exact'
+      ? (input.sockets ?? 0)
+      : Math.max(1, Math.round(input.areaM2 * 0.82));
+
+    knownExtraWorks =
+      input.areaM2 * EXTRA_RATES.electricalPerM2 +
+      lights * EXTRA_RATES.lightInstall +
+      sockets * EXTRA_RATES.socketInstall;
+
+    knownExtraMaterials =
+      lights * EXTRA_RATES.lightMaterial +
+      sockets * EXTRA_RATES.socketMaterial;
+
+    lines.push({
+      code: 'electrical_extra_works',
+      title: 'Электрика и освещение — дополнительные работы',
+      amount: roundRub(knownExtraWorks),
+      group: 'works'
+    });
+
+    if (knownExtraMaterials > 0) {
+      lines.push({
+        code: 'electrical_extra_materials',
+        title: 'Электрика и освещение — дополнительные материалы',
+        amount: roundRub(knownExtraMaterials),
+        group: 'materials'
+      });
+    }
+  }
+
+  const clientTotal = roundRub(packageTotal + knownExtraWorks + knownExtraMaterials);
 
   return {
     currency: 'RUB',
@@ -297,27 +338,26 @@ function calculateRangeEstimate(input: EstimateRequest): EstimateResult {
     calculationMode: 'range',
     measurementMode: input.calculationMode,
     basePricePerM2: roundRub(basePricePerM2),
-    lines: [{
-      code: 'package_range',
-      title: pkg.title + ': ориентировочная стоимость',
-      amount: clientTotal,
-      group: 'works'
-    }],
-    worksTotal: 0,
-    materialsTotal: 0,
+    lines,
+    worksTotal: roundRub(knownExtraWorks),
+    materialsTotal: roundRub(knownExtraMaterials),
     deliveryTotal: 0,
     subtotalBeforeVat: clientTotal,
     vatRate: 0,
     vat: 0,
     estimateBeforeReward: clientTotal,
     agentRewardRate: AGENT_REWARD_RATE,
-    agentReward,
-    agentRewardBase,
+    // Буклет не разделяет базовую цену пакета на работы и материалы.
+    // Поэтому нельзя корректно посчитать 5% риелтора от всех работ пакета.
+    agentReward: 0,
+    agentRewardBase: 0,
     clientTotal,
     pricePerM2Final: roundRub(clientTotal / input.areaM2),
     assumptions: {},
     disclaimer:
-      'Для пакетов Минимальный и Премиум в исходных материалах нет детальной разбивки стоимости на работы и материалы. Поэтому стоимость показывается ориентировочно, а вознаграждение риелтора не рассчитывается до появления стоимости работ.'
+      'Для этого пакета используется цена из буклета «от ' +
+      basePricePerM2.toLocaleString('ru-RU') +
+      ' ₽/м²». Уровень комплектации не применяется. Электрика и освещение считаются отдельно. Буклет не содержит разбивки базовой цены на работы и материалы, поэтому точное вознаграждение риелтора 5% от работ для базового пакета пока не рассчитывается.'
   };
 }
 
@@ -325,5 +365,5 @@ export function calculateEstimate(input: EstimateRequest): EstimateResult {
   if (input.package === 'standard' || input.package === 'comfort') {
     return calculateSmetaEstimate(input);
   }
-  return calculateRangeEstimate(input);
+  return calculateFixedPackageEstimate(input);
 }
