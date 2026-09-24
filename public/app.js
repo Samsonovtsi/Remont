@@ -23,11 +23,14 @@ function renderPackages() {
   Object.entries(packageData).forEach(([code, pkg]) => {
     const el = document.createElement('div');
     el.className = 'package' + (code === selectedPackage ? ' active' : '');
-    const mode = pkg.calculationMode === 'smeta' ? 'детальная сметная модель' : 'пакетный диапазон';
+    const mode = pkg.calculationMode === 'smeta' ? 'детальная сметная модель' : 'фиксированная цена «от»';
+    const priceText = pkg.calculationMode === 'fixed'
+      ? `от ${rub.format(pkg.minPerM2)} / м²`
+      : `${rub.format(pkg.minPerM2)} — ${rub.format(pkg.maxPerM2)} / м²`;
     el.innerHTML = `
       <div class="package-top"><h3>${pkg.title}</h3><div class="radio-dot"></div></div>
       <p>${pkg.description}</p>
-      <div class="package-price">${rub.format(pkg.minPerM2)} — ${rub.format(pkg.maxPerM2)} / м²</div>
+      <div class="package-price">${priceText}</div>
       <p><strong>${mode}</strong></p>
     `;
     el.addEventListener('click', () => {
@@ -37,9 +40,15 @@ function renderPackages() {
     root.appendChild(el);
   });
 
-  const selected = packageData[selectedPackage];
-  $('finishLevel').closest('.range-wrap').style.display =
-    selected?.calculationMode === 'range' ? 'block' : 'none';
+  // Уровень комплектации больше не используется ни для одного пакета.
+  $('finishLevel').closest('.range-wrap').style.display = 'none';
+
+  const fixedPackage = packageData[selectedPackage]?.calculationMode === 'fixed';
+  if (fixedPackage && $('calculationMode').value === 'exact') {
+    // Для Минимального/Премиум точные геометрические поля базового пакета
+    // не влияют на цену из буклета; оставляем exact только для электрики.
+    $('exactFields').classList.remove('hidden');
+  }
 }
 
 function finishText(value) {
