@@ -7,6 +7,8 @@ const rub = new Intl.NumberFormat('ru-RU', {
 let selectedPackage = 'comfort';
 let packageData = {};
 let latestEstimate = null;
+let autoCalcTimer = null;
+let estimateAbortController = null;
 const $ = (id) => document.getElementById(id);
 
 function escapeHtml(value = '') {
@@ -133,7 +135,7 @@ function renderPackages() {
       if (event.target.closest('details')) return;
       selectedPackage = code;
       renderPackages();
-      $('calculator').requestSubmit();
+      scheduleAutoCalculation();
     });
 
     root.appendChild(el);
@@ -323,30 +325,63 @@ function generateClientOffer() {
   popup.document.close();
 }
 
-$('calculator').addEventListener('submit', async (event) => {
-  event.preventDefault();
+async function calculateAndRender({ showButtonState = false } = {}) {
   const button = $('submitButton');
   const error = $('formError');
+
+  if (!num('areaM2') || num('areaM2') <= 0) return;
+
+  if (estimateAbortController) {
+    estimateAbortController.abort();
+  }
+  estimateAbortController = new AbortController();
+
   error.classList.add('hidden');
-  button.disabled = true;
-  button.textContent = 'Считаем...';
+
+  if (showButtonState) {
+    button.disabled = true;
+    button.textContent = 'Считаем...';
+  }
 
   try {
     const response = await fetch('/api/v1/estimate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload())
+      body: JSON.stringify(payload()),
+      signal: estimateAbortController.signal
     });
+
     const data = await response.json();
     if (!response.ok) throw new Error('Проверьте введённые параметры');
     renderResult(data);
   } catch (err) {
+    if (err.name === 'AbortError') return;
     error.textContent = err.message || 'Ошибка расчёта';
     error.classList.remove('hidden');
   } finally {
-    button.disabled = false;
-    button.textContent = 'Рассчитать смету';
+    if (showButtonState) {
+      button.disabled = false;
+      button.textContent = 'Рассчитать смету';
+    }
   }
+}
+
+function scheduleAutoCalculation() {
+  clearTimeout(autoCalcTimer);
+  autoCalcTimer = setTimeout(() => {
+    calculateAndRender();
+  }, 300);
+}
+
+$('calculator').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  clearTimeout(autoCalcTimer);
+  await calculateAndRender({ showButtonState: true });
+});
+
+$('calculator').querySelectorAll('input, select').forEach((field) => {
+  field.addEventListener('input', scheduleAutoCalculation);
+  field.addEventListener('change', scheduleAutoCalculation);
 });
 
 $('generateOfferButton').addEventListener('click', generateClientOffer);
@@ -354,7 +389,7 @@ $('generateOfferButton').addEventListener('click', generateClientOffer);
 (async () => {
   try {
     await loadPackages();
-    $('calculator').requestSubmit();
+    await calculateAndRender();
   } catch {
     $('formError').textContent = 'Не удалось загрузить калькулятор. Проверьте backend.';
     $('formError').classList.remove('hidden');
