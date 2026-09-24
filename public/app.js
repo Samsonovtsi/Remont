@@ -18,12 +18,22 @@ function escapeHtml(value = '') {
     .replaceAll("'", '&#039;');
 }
 
-function packageImage(code) {
+function packagePreviewImage(code) {
   const images = {
-    minimal: '/images/packages/minimal.webp?v=20260924-3',
-    standard: '/images/packages/standard.webp?v=20260924-3',
-    comfort: '/images/packages/comfort.webp?v=20260924-3',
-    premium: '/images/packages/premium.webp?v=20260924-3'
+    minimal: '/images/packages/minimal.webp?v=20260924-4',
+    standard: '/images/packages/standard.webp?v=20260924-4',
+    comfort: '/images/packages/comfort.webp?v=20260924-4',
+    premium: '/images/packages/premium.webp?v=20260924-4'
+  };
+  return images[code] || '';
+}
+
+function packageFullImage(code) {
+  const images = {
+    minimal: '/images/packages/minimal.png?v=20260924-4',
+    standard: '/images/packages/standard.png?v=20260924-4',
+    comfort: '/images/packages/comfort.png?v=20260924-4',
+    premium: '/images/packages/premium.png?v=20260924-4'
   };
   return images[code] || '';
 }
@@ -33,7 +43,9 @@ function updatePackagePreview() {
   const image = $('selectedPackageImage');
   if (!image) return;
 
-  const src = packageImage(selectedPackage);
+  const src = packagePreviewImage(selectedPackage);
+  image.loading = 'eager';
+  image.decoding = 'async';
   image.src = src;
   image.style.display = src ? 'block' : 'none';
   image.alt = pkg ? `Пример ремонта — пакет ${pkg.title}` : 'Пример ремонта';
@@ -68,11 +80,11 @@ function renderPackages() {
       `<li><span class="gift-icon">✦</span><span>${item}</span></li>`
     ).join('');
     const notes = (pkg.notes || []).map(item => `<li>${item}</li>`).join('');
-    const selectedImage = code === selectedPackage ? packageImage(code) : '';
+    const selectedImage = code === selectedPackage ? packagePreviewImage(code) : '';
 
     el.innerHTML = `
       <div class="package-visual">
-        ${selectedImage ? `<img class="package-card-image" src="${selectedImage}" alt="Пример ремонта — пакет ${escapeHtml(pkg.title)}">` : ''}
+        ${selectedImage ? `<img class="package-card-image" src="${selectedImage}" loading="lazy" decoding="async" fetchpriority="low" alt="Пример ремонта — пакет ${escapeHtml(pkg.title)}">` : ''}
         <div class="package-badge">Пакет ремонта</div>
         <div class="package-top">
           <div>
@@ -206,7 +218,7 @@ function generateClientOffer() {
   }
 
   const offerComment = escapeHtml($('offerComment').value.trim());
-  const imageSrc = packageImage(selectedPackage);
+  const imageSrc = packageFullImage(selectedPackage);
 
   const estimateRows = (latestEstimate.lines || []).map(line => `
     <tr>
@@ -274,7 +286,7 @@ function generateClientOffer() {
     </div>
   </div>
 
-  ${imageSrc ? `<img class="hero" src="${imageSrc}" alt="Пример ремонта — пакет ${escapeHtml(pkg.title)}">` : ''}
+  ${imageSrc ? `<img class="hero" src="${imageSrc}" decoding="sync" alt="Пример ремонта — пакет ${escapeHtml(pkg.title)}">` : ''}
 
   <div class="price">
     <small>Предварительная стоимость ремонта</small>
