@@ -101,7 +101,7 @@ function estimateGeometry(input: EstimateRequest) {
 }
 
 function calculateSmetaEstimate(input: EstimateRequest): EstimateResult {
-  const code = input.package as 'minimal' | 'standard' | 'comfort';
+  const code = input.package as 'minimal' | 'standard' | 'comfort' | 'premium';
   const rates = SMETA_RATES[code];
   const extras = EXTRA_RATES_BY_PACKAGE[code];
   const geometry = estimateGeometry(input);
@@ -295,8 +295,7 @@ function calculateQuickOfficialEstimate(input: EstimateRequest): EstimateResult 
   }];
 
   // Электрика и освещение в техкарте прямо указаны как дополнительные.
-  const extraRateCode = input.package === 'minimal' ? 'minimal' : input.package === 'standard' ? 'standard' : 'comfort';
-  const extras = EXTRA_RATES_BY_PACKAGE[extraRateCode];
+  const extras = EXTRA_RATES_BY_PACKAGE[input.package];
   const geometry = estimateGeometry(input);
 
   let extraWorks = 0;
@@ -490,9 +489,5 @@ export function calculateEstimate(input: EstimateRequest): EstimateResult {
     return calculateQuickOfficialEstimate(input);
   }
 
-  if (input.package === 'minimal' || input.package === 'standard' || input.package === 'comfort') {
-    return calculateSmetaEstimate(input);
-  }
-
-  return calculateFixedPackageEstimate(input);
+  return calculateSmetaEstimate(input);
 }
