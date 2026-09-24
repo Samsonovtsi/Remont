@@ -148,6 +148,7 @@ function payload() {
     bathrooms: num('bathrooms'),
     rooms: num('rooms'),
     doors: num('doors'),
+    doorways: num('doorways'),
     needsFullElectrical: $('needsFullElectrical').checked,
     needsFullPlumbing: $('needsFullPlumbing').checked,
     needsDemolition: $('needsDemolition').checked,
@@ -162,6 +163,8 @@ function payload() {
       wetTileAreaM2: num('wetTileAreaM2'),
       balconyTileAreaM2: num('balconyTileAreaM2'),
       ceilingAreaM2: num('ceilingAreaM2'),
+      ceilingWorkAreaM2: num('ceilingWorkAreaM2'),
+      electricalAreaM2: num('electricalAreaM2'),
       demolitionAreaM2: num('demolitionAreaM2'),
       lights: num('lights'),
       sockets: num('sockets')
