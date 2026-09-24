@@ -87,3 +87,30 @@ button:disabled{opacity:.65;cursor:wait}
   h1{font-size:39px;letter-spacing:-1.2px}
   .result-total strong{font-size:34px}
 }
+
+/* Package visual cards */
+.packages{grid-template-columns:1fr 1fr;align-items:stretch}
+.package{padding:0;overflow:hidden;position:relative}
+.package.active{padding:0;border:2px solid var(--accent)}
+.package-visual{padding:20px;background:linear-gradient(145deg,#fff 0%,#fbf8f5 100%);height:100%}
+.package-minimal .package-visual{background:linear-gradient(145deg,#ffffff 0%,#f4f2ef 100%)}
+.package-standard .package-visual{background:linear-gradient(145deg,#ffffff 0%,#f5f0e8 100%)}
+.package-comfort .package-visual{background:linear-gradient(145deg,#fffdfa 0%,#f2eadf 100%)}
+.package-premium .package-visual{background:linear-gradient(145deg,#fff 0%,#ece6df 100%)}
+.package-badge{display:inline-block;background:#fff0ed;color:var(--accent);font-size:11px;font-weight:800;padding:7px 10px;border-radius:999px;margin-bottom:12px}
+.package h3{font-size:26px;letter-spacing:-.7px}
+.package-description{min-height:51px;font-size:12px!important}
+.package-price{font-size:19px;margin:15px 0 16px}
+.package-content-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.package-panel{background:rgba(255,255,255,.78);border:1px solid var(--line);border-radius:14px;padding:12px}
+.package-panel h4{margin:0 0 9px;font-size:12px}
+.package-list{list-style:none;padding:0;margin:0;display:grid;gap:7px}
+.package-list li{display:flex;gap:7px;align-items:flex-start;font-size:11px;line-height:1.25;color:#433d38}
+.pkg-icon,.gift-icon{width:18px;height:18px;border-radius:6px;display:grid;place-items:center;flex:0 0 18px;background:#fff0ed;color:var(--accent);font-weight:900;font-size:11px}
+.gift-panel{background:#fffaf8}
+.package-benefits{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.benefit-chip{font-size:10px;font-weight:700;padding:6px 8px;background:#fff;border:1px solid var(--line);border-radius:999px;color:#5b534e}
+@media(max-width:700px){
+  .packages{grid-template-columns:1fr}
+  .package-content-grid{grid-template-columns:1fr}
+}
