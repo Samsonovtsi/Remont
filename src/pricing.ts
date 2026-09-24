@@ -19,7 +19,7 @@ export const PACKAGE_PRICES: Record<PackageCode, PackagePrice> = {
   minimal: {
     title: 'Минимальный',
     minPerM2: 17_100,
-    maxPerM2: 17_100,
+    maxPerM2: 27_600,
     description: 'Доступный ремонт для создания функциональной основы.',
     calculationMode: 'smeta',
     included: ['Работы', 'Черновые материалы', 'Чистовые материалы', 'Доставка', 'Вынос мусора'],
@@ -54,7 +54,7 @@ export const PACKAGE_PRICES: Record<PackageCode, PackagePrice> = {
   standard: {
     title: 'Стандарт',
     minPerM2: 22_700,
-    maxPerM2: 22_700,
+    maxPerM2: 37_600,
     description: 'Быстрый и эффективный способ обновить интерьер с доступными материалами.',
     calculationMode: 'smeta',
     included: ['Работы', 'Черновые материалы', 'Чистовые материалы', 'Сантехника', 'Доставка', 'Вынос мусора'],
@@ -97,8 +97,8 @@ export const PACKAGE_PRICES: Record<PackageCode, PackagePrice> = {
   },
   comfort: {
     title: 'Комфорт',
-    minPerM2: 29_100,
-    maxPerM2: 29_100,
+    minPerM2: 32_200,
+    maxPerM2: 47_300,
     description: 'Продуманное решение с улучшенными материалами, деталями и атмосферой.',
     calculationMode: 'smeta',
     included: ['Работы', 'Черновые материалы', 'Чистовые материалы', 'Сантехника', 'Доставка', 'Вынос мусора'],
@@ -142,7 +142,7 @@ export const PACKAGE_PRICES: Record<PackageCode, PackagePrice> = {
   premium: {
     title: 'Премиум',
     minPerM2: 42_800,
-    maxPerM2: 42_800,
+    maxPerM2: 61_600,
     description: 'Комплексное преображение пространства с вниманием к каждой детали.',
     calculationMode: 'fixed',
     included: ['Работы', 'Черновые материалы', 'Чистовые материалы', 'Сантехника', 'Доставка', 'Вынос мусора'],
@@ -184,6 +184,50 @@ export const PACKAGE_PRICES: Record<PackageCode, PackagePrice> = {
     ]
   }
 };
+
+export interface OfficialApartmentPriceBand {
+  minArea: number;
+  maxArea: number;
+  label: string;
+  prices: Record<PackageCode, number>;
+}
+
+// Официальная матрица из листа «2026 ГОД квартиры» файла «Тех карта менеджера.xlsx».
+// Стоимость за м²: работы + черновые материалы + чистовые материалы, без доп. услуг.
+export const OFFICIAL_APARTMENT_PRICE_BANDS_2026: OfficialApartmentPriceBand[] = [
+  { minArea: 20, maxArea: 29.999, label: '20–29 м²', prices: { minimal: 27_600, standard: 37_600, comfort: 47_300, premium: 61_600 } },
+  { minArea: 30, maxArea: 39.999, label: '30–39 м²', prices: { minimal: 26_800, standard: 33_700, comfort: 41_200, premium: 53_900 } },
+  { minArea: 40, maxArea: 49.999, label: '40–49 м²', prices: { minimal: 25_600, standard: 28_300, comfort: 36_800, premium: 47_400 } },
+  { minArea: 50, maxArea: 59.999, label: '50–59 м²', prices: { minimal: 19_600, standard: 26_400, comfort: 35_100, premium: 45_300 } },
+  { minArea: 60, maxArea: 69.999, label: '60–69 м²', prices: { minimal: 18_300, standard: 24_600, comfort: 34_400, premium: 43_400 } },
+  { minArea: 70, maxArea: 79.999, label: '70–79 м²', prices: { minimal: 17_500, standard: 24_200, comfort: 33_300, premium: 43_300 } },
+  { minArea: 80, maxArea: 89.999, label: '80–89 м²', prices: { minimal: 17_100, standard: 22_700, comfort: 32_200, premium: 42_800 } }
+];
+
+export function getOfficialApartmentPackageRate(areaM2: number, code: PackageCode) {
+  const exactBand = OFFICIAL_APARTMENT_PRICE_BANDS_2026.find(
+    band => areaM2 >= band.minArea && areaM2 <= band.maxArea
+  );
+
+  if (exactBand) {
+    return {
+      rate: exactBand.prices[code],
+      band: exactBand.label,
+      outsideOfficialRange: false
+    };
+  }
+
+  const nearest =
+    areaM2 < 20
+      ? OFFICIAL_APARTMENT_PRICE_BANDS_2026[0]
+      : OFFICIAL_APARTMENT_PRICE_BANDS_2026[OFFICIAL_APARTMENT_PRICE_BANDS_2026.length - 1];
+
+  return {
+    rate: nearest.prices[code],
+    band: nearest.label,
+    outsideOfficialRange: true
+  };
+}
 
 export const AGENT_REWARD_RATE = 0.05;
 export const VAT_RATE = 0.05;
