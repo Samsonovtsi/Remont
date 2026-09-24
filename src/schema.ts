@@ -13,6 +13,7 @@ export const estimateRequestSchema = z.object({
   bathrooms: z.number().int().min(0).max(20).default(1),
   rooms: z.number().int().min(0).max(50).default(1),
   doors: z.number().int().min(0).max(100).default(2),
+  doorways: z.number().int().min(0).max(100).default(1),
 
   needsFullElectrical: z.boolean().default(false),
   needsFullPlumbing: z.boolean().default(false),
@@ -29,11 +30,13 @@ export const estimateRequestSchema = z.object({
   wetTileAreaM2: nonNegative,
   balconyTileAreaM2: nonNegative,
   ceilingAreaM2: nonNegative,
+  ceilingWorkAreaM2: nonNegative,
+  electricalAreaM2: nonNegative,
   demolitionAreaM2: nonNegative,
   lights: z.number().int().min(0).max(1000).optional(),
   sockets: z.number().int().min(0).max(2000).optional(),
 
-  // Используется только для пакетов, по которым нет детальной сметной модели.
+  // Для фиксированного Премиум-пакета.
   finishLevel: z.number().min(0).max(1).default(0.5)
 });
 
