@@ -20,10 +20,10 @@ function escapeHtml(value = '') {
 
 function packageImage(code) {
   const images = {
-    minimal: '/images/packages/minimal.webp',
-    standard: '/images/packages/standard.webp',
-    comfort: '/images/packages/comfort.webp',
-    premium: '/images/packages/premium.webp'
+    minimal: '/images/packages/minimal.png',
+    standard: '/images/packages/standard.png',
+    comfort: '/images/packages/comfort.png',
+    premium: '/images/packages/premium.png'
   };
   return images[code] || '';
 }
