@@ -53,11 +53,31 @@ describe('renovation calculator', () => {
     expect(result.vat).toBe(Math.round(result.subtotalBeforeVat * 0.05));
   });
 
-  it('does not invent realtor reward where works/material split is unavailable', () => {
-    const input = estimateRequestSchema.parse({ ...exactComfort, package: 'premium' });
+  it('uses fixed brochure price for Premium without finish level', () => {
+    const input = estimateRequestSchema.parse({
+      ...exactComfort,
+      areaM2: 80,
+      package: 'premium',
+      needsFullElectrical: false,
+      finishLevel: 1
+    });
     const result = calculateEstimate(input);
     expect(result.calculationMode).toBe('range');
+    expect(result.basePricePerM2).toBe(42_800);
+    expect(result.clientTotal).toBe(80 * 42_800);
     expect(result.agentReward).toBe(0);
-    expect(result.agentRewardBase).toBe(0);
+  });
+
+  it('uses fixed brochure price for Minimal without finish level', () => {
+    const input = estimateRequestSchema.parse({
+      ...exactComfort,
+      areaM2: 80,
+      package: 'minimal',
+      needsFullElectrical: false,
+      finishLevel: 0.73
+    });
+    const result = calculateEstimate(input);
+    expect(result.basePricePerM2).toBe(20_500);
+    expect(result.clientTotal).toBe(80 * 20_500);
   });
 });
