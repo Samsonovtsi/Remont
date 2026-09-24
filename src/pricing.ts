@@ -7,16 +7,16 @@ export interface PackagePrice {
   minPerM2: number;
   maxPerM2: number;
   description: string;
-  calculationMode: 'range' | 'smeta';
+  calculationMode: 'fixed' | 'smeta';
 }
 
 export const PACKAGE_PRICES: Record<PackageCode, PackagePrice> = {
   minimal: {
     title: 'Минимальный',
-    minPerM2: 17_100,
-    maxPerM2: 27_600,
-    description: 'Ориентир по публичному пакетному диапазону',
-    calculationMode: 'range'
+    minPerM2: 20_500,
+    maxPerM2: 20_500,
+    description: 'От 20 500 ₽/м². Включены работы, черновые и чистовые материалы и сантехника; электрика и освещение рассчитываются дополнительно.',
+    calculationMode: 'fixed'
   },
   standard: {
     title: 'Стандарт',
@@ -35,9 +35,9 @@ export const PACKAGE_PRICES: Record<PackageCode, PackagePrice> = {
   premium: {
     title: 'Премиум',
     minPerM2: 42_800,
-    maxPerM2: 61_600,
-    description: 'Ориентир по публичному пакетному диапазону',
-    calculationMode: 'range'
+    maxPerM2: 42_800,
+    description: 'От 42 800 ₽/м². Включены работы, черновые и чистовые материалы и сантехника; электрика и освещение рассчитываются дополнительно.',
+    calculationMode: 'fixed'
   }
 };
 
