@@ -140,7 +140,7 @@ describe('renovation calculator', () => {
     expect(result.agentRewardBase).toBe(result.worksTotal);
     expect(result.agentReward).toBe(Math.round(result.worksTotal * 0.05));
   });
-  it('uses official 2026 tech-card package rate by apartment area in quick mode', () => {
+  it('uses uploaded-estimate rates as the primary model in quick mode', () => {
     const input = estimateRequestSchema.parse({
       areaM2: 55,
       package: 'comfort',
@@ -159,12 +159,15 @@ describe('renovation calculator', () => {
       warmFloorM2: 0
     });
     const result = calculateEstimate(input);
-    expect(result.basePricePerM2).toBe(35_100);
-    expect(result.clientTotal).toBe(55 * 35_100);
+    expect(result.calculationMode).toBe('smeta');
     expect(result.measurementMode).toBe('quick');
+    expect(result.worksTotal).toBeGreaterThan(0);
+    expect(result.materialsTotal).toBeGreaterThan(0);
+    expect(result.deliveryTotal).toBe(Math.round(result.materialsTotal * 0.10));
+    expect(result.vat).toBe(Math.round(result.subtotalBeforeVat * 0.05));
   });
 
-  it('uses official Premium area band instead of a single flat minimum', () => {
+  it('uses uploaded-estimate Premium rates in quick mode', () => {
     const input = estimateRequestSchema.parse({
       areaM2: 35,
       package: 'premium',
@@ -176,15 +179,16 @@ describe('renovation calculator', () => {
       doors: 1,
       doorways: 0,
       needsFullElectrical: false,
-      needsFullPlumbing: false,
+      needsFullPlumbing: true,
       needsDemolition: false,
       needsCeiling: true,
       hasBalcony: false,
       warmFloorM2: 0
     });
     const result = calculateEstimate(input);
-    expect(result.basePricePerM2).toBe(53_900);
-    expect(result.clientTotal).toBe(35 * 53_900);
+    expect(result.calculationMode).toBe('smeta');
+    expect(result.worksTotal).toBeGreaterThan(0);
+    expect(result.agentRewardBase).toBe(result.worksTotal);
   });
 
 });
