@@ -104,18 +104,41 @@ describe('renovation calculator', () => {
     expect(result.vat).toBe(Math.round(result.subtotalBeforeVat * 0.05));
   });
 
-  it('uses fixed brochure price for Premium without finish level', () => {
+  it('calculates Premium works and realtor reward in exact mode', () => {
     const input = estimateRequestSchema.parse({
-      ...futuroComfort,
-      areaM2: 80,
+      areaM2: 59.82,
       package: 'premium',
-      needsFullElectrical: false
+      propertyType: 'apartment',
+      condition: 'new_build',
+      calculationMode: 'exact',
+      bathrooms: 1,
+      rooms: 2,
+      doors: 0,
+      doorways: 0,
+      needsFullElectrical: false,
+      needsFullPlumbing: true,
+      needsDemolition: false,
+      needsCeiling: false,
+      hasBalcony: false,
+      warmFloorM2: 0,
+      roughWallAreaM2: 158.16,
+      cleanWallAreaM2: 158.16,
+      roughFloorAreaM2: 54.27,
+      dryFloorAreaM2: 52.72,
+      wetTileAreaM2: 25.9,
+      balconyTileAreaM2: 0,
+      ceilingAreaM2: 0,
+      ceilingWorkAreaM2: 0,
+      electricalAreaM2: 0,
+      demolitionAreaM2: 0,
+      lights: 0,
+      sockets: 0
     });
     const result = calculateEstimate(input);
-    expect(result.calculationMode).toBe('range');
-    expect(result.basePricePerM2).toBe(42_800);
-    expect(result.clientTotal).toBe(80 * 42_800);
-    expect(result.agentReward).toBe(0);
+    expect(result.calculationMode).toBe('smeta');
+    expect(result.worksTotal).toBeGreaterThan(0);
+    expect(result.agentRewardBase).toBe(result.worksTotal);
+    expect(result.agentReward).toBe(Math.round(result.worksTotal * 0.05));
   });
   it('uses official 2026 tech-card package rate by apartment area in quick mode', () => {
     const input = estimateRequestSchema.parse({
