@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Калькулятор ремонта</title>
-  <link rel="stylesheet" href="/styles.css?v=10" />
+  <link rel="stylesheet" href="/styles.css?v=11" />
 </head>
 <body>
   <main class="page">
@@ -104,12 +104,56 @@
             <div id="selectedPackageImageCaption" class="package-preview-caption">—</div>
           </div>
 
-          <div class="breakdown"><h3>Состав сметы</h3><div id="lines"><p class="muted">Заполните параметры и нажмите «Рассчитать смету».</p></div></div>
+          <div class="breakdown"><h3>Состав сметы</h3><div id="lines"><p class="muted">Заполните параметры — смета пересчитается автоматически.</p></div></div>
           <div class="note">Для точного режима внесите фактические площади и количество электроточек.</div>
+
+          <section class="feedback-card" aria-labelledby="feedbackTitle">
+            <div class="feedback-head">
+              <div>
+                <div class="eyebrow">Обратная связь</div>
+                <h3 id="feedbackTitle">Насколько верна смета?</h3>
+              </div>
+              <span class="feedback-hint">1 клик</span>
+            </div>
+
+            <div class="feedback-actions">
+              <button id="feedbackOkButton" type="button" class="feedback-button feedback-ok">👍 Похоже верно</button>
+              <button id="feedbackErrorButton" type="button" class="feedback-button feedback-error">⚠️ Есть ошибка</button>
+            </div>
+
+            <div id="feedbackForm" class="feedback-form hidden">
+              <label>
+                <span>Что неверно</span>
+                <select id="feedbackIssueType">
+                  <option value="Итоговая цена">Итоговая цена</option>
+                  <option value="Стоимость работ">Стоимость работ</option>
+                  <option value="Материалы">Материалы</option>
+                  <option value="Цена за м²">Цена за м²</option>
+                  <option value="Конкретная позиция">Конкретная позиция</option>
+                  <option value="Другое">Другое</option>
+                </select>
+              </label>
+              <label>
+                <span>Какой итог должен быть, ₽</span>
+                <input id="feedbackExpectedTotal" type="number" min="0" step="1000" placeholder="Если знаете правильную сумму" />
+              </label>
+              <label>
+                <span>Комментарий</span>
+                <textarea id="feedbackComment" rows="3" maxlength="2000" placeholder="Коротко опишите, что не сходится"></textarea>
+              </label>
+              <div class="feedback-form-actions">
+                <button id="feedbackSendButton" type="button" class="feedback-button feedback-send">Отправить ошибку</button>
+                <button id="feedbackCancelButton" type="button" class="feedback-button feedback-cancel">Отмена</button>
+              </div>
+            </div>
+
+            <p id="feedbackStatus" class="feedback-status" aria-live="polite"></p>
+          </section>
+
         </div>
       </aside>
     </section>
   </main>
-  <script src="/app.js?v=10"></script>
+  <script src="/app.js?v=11"></script>
 </body>
 </html>
