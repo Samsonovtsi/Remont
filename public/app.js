@@ -5,13 +5,15 @@ const rub = new Intl.NumberFormat('ru-RU', {
 });
 
 let selectedPackage = 'comfort';
-let selectedDesignProject = 'none';
+let selectedDesignProject = 'technical';
 let packageData = {};
 
 const DESIGN_PROJECTS = {
   technical: {
     title: 'Технический проект',
     pricePerM2: 1800,
+    upgradePricePerM2: 0,
+    included: true,
     image: '/images/design/technical.webp?v=20260925-2',
     description: 'Комплект технических чертежей и схем для выполнения ремонта без визуализации.',
     highlights: ['12 базовых планов и схем', 'Замеры и фото/видеофиксация', 'Без визуализации'],
@@ -33,6 +35,7 @@ const DESIGN_PROJECTS = {
   express: {
     title: 'Экспресс-проект с коллажами',
     pricePerM2: 2300,
+    upgradePricePerM2: 500,
     image: '/images/design/express.webp?v=20260925-2',
     description: 'Техническая база плюс коллажи для согласования стиля, цветов и материалов.',
     highlights: ['Всё из технического проекта', 'Коллажи помещений', 'Спецификация отделочных материалов'],
@@ -41,6 +44,8 @@ const DESIGN_PROJECTS = {
   full: {
     title: 'Полный проект',
     pricePerM2: 3000,
+    upgradePricePerM2: 1200,
+    recommended: true,
     image: '/images/design/full.webp?v=20260925-2',
     description: 'Полный рабочий проект с развёртками стен и визуализацией помещений.',
     highlights: ['Всё из экспресс-проекта', 'Развёртки стен', 'Визуализация помещений'],
@@ -49,6 +54,7 @@ const DESIGN_PROJECTS = {
   extended: {
     title: 'Расширенный проект',
     pricePerM2: 3500,
+    upgradePricePerM2: 1700,
     image: '/images/design/extended.webp?v=20260925-2',
     description: 'Максимальная детализация проекта, мебельные решения и обзор интерьера 360°.',
     highlights: ['Всё из полного проекта', 'Эскизы корпусной мебели', 'Визуализация + обзор 360°'],
@@ -179,10 +185,16 @@ function isApartmentProperty() {
 }
 
 function getSelectedDesignProject() {
-  return selectedDesignProject === 'none' ? null : DESIGN_PROJECTS[selectedDesignProject] || null;
+  return DESIGN_PROJECTS[selectedDesignProject] || DESIGN_PROJECTS.technical;
 }
 
 function getDesignProjectTotal() {
+  const project = getSelectedDesignProject();
+  const area = Math.max(num('areaM2'), 0);
+  return project && area > 0 ? Math.round((project.upgradePricePerM2 || 0) * area) : 0;
+}
+
+function getDesignProjectRetailTotal() {
   const project = getSelectedDesignProject();
   const area = Math.max(num('areaM2'), 0);
   return project && area > 0 ? Math.round(project.pricePerM2 * area) : 0;
@@ -233,8 +245,8 @@ function renderDesignSummary() {
   summary.classList.toggle('hidden', !project || !isApartmentProperty());
 
   if (project && isApartmentProperty()) {
-    if (name) name.textContent = project.title;
-    if (total) total.textContent = rub.format(designTotal);
+    if (name) name.textContent = project.included ? project.title + ' — включён' : project.title;
+    if (total) total.textContent = project.included ? 'Без доплаты' : '+' + rub.format(designTotal);
     if (combined && latestEstimate) combined.textContent = rub.format(latestEstimate.clientTotal + designTotal);
   }
 
@@ -244,42 +256,57 @@ function renderDesignSummary() {
 function renderDesignProjects() {
   const section = $('designProjectSection');
   const root = $('designProjects');
-  const noneButton = $('designNoneButton');
-  if (!section || !root || !noneButton) return;
+  if (!section || !root) return;
 
   const apartment = isApartmentProperty();
   section.classList.toggle('hidden', !apartment);
 
   if (!apartment) {
-    selectedDesignProject = 'none';
     renderDesignSummary();
     return;
   }
 
-  noneButton.classList.toggle('active', selectedDesignProject === 'none');
+  if (!DESIGN_PROJECTS[selectedDesignProject]) selectedDesignProject = 'technical';
   const area = Math.max(num('areaM2'), 0);
 
   root.innerHTML = Object.entries(DESIGN_PROJECTS).map(([code, project]) => {
     const active = selectedDesignProject === code;
-    const total = area > 0 ? Math.round(area * project.pricePerM2) : 0;
+    const retailTotal = area > 0 ? Math.round(area * project.pricePerM2) : 0;
+    const upgradeTotal = area > 0 ? Math.round(area * (project.upgradePricePerM2 || 0)) : 0;
     const highlights = project.highlights.map(item =>
       '<li><span>✓</span><em>' + escapeHtml(item) + '</em></li>'
     ).join('');
     const details = project.includes.map(item => '<li>' + escapeHtml(item) + '</li>').join('');
+    const badge = project.included
+      ? 'Включено в ремонт'
+      : project.recommended
+        ? 'Рекомендуем'
+        : 'Улучшение проекта';
+    const priceHtml = project.included
+      ? '<strong class="design-included-price">0 ₽ доплаты</strong><span>Технический проект уже входит в выбранный ремонт</span>'
+      : '<strong>+' + rub.format(project.upgradePricePerM2) + ' / м²</strong>' +
+        '<span>' + (area > 0
+          ? 'Доплата ≈ ' + rub.format(upgradeTotal) + ' · полный проект ' + rub.format(retailTotal)
+          : 'Полная стоимость проекта ' + rub.format(project.pricePerM2) + ' / м²') + '</span>';
+    const cta = project.included
+      ? '<div class="design-included-button">Уже включено</div>'
+      : '<button type="button" class="design-select-button" data-select-design="' + code + '">' +
+        (active ? 'Выбрано' : (code === 'express' ? 'Добавить коллажи' : code === 'full' ? 'Добавить визуализацию' : 'Выбрать максимум')) +
+        '</button>';
 
-    return '<article class="design-project-card' + (active ? ' active' : '') + '" data-design-project="' + code + '">' +
+    return '<article class="design-project-card' + (active ? ' active' : '') + (project.included ? ' included' : '') + (project.recommended ? ' recommended' : '') + '" data-design-project="' + code + '">' +
       '<div class="design-project-image-wrap">' +
         '<img class="design-project-image" src="' + project.image + '" loading="lazy" decoding="async" alt="' + escapeHtml(project.title) + '">' +
         '<span class="design-project-check">✓</span>' +
+        (project.recommended ? '<span class="design-project-ribbon">Лучший баланс</span>' : '') +
       '</div>' +
       '<div class="design-project-body">' +
-        '<div class="design-project-badge">Дизайн-проект</div>' +
+        '<div class="design-project-badge">' + badge + '</div>' +
         '<h3>' + escapeHtml(project.title) + '</h3>' +
         '<p>' + escapeHtml(project.description) + '</p>' +
-        '<div class="design-project-price"><strong>от ' + rub.format(project.pricePerM2) + ' / м²</strong>' +
-        '<span>' + (area > 0 ? '≈ ' + rub.format(total) + ' за проект' : 'Укажите площадь квартиры') + '</span></div>' +
+        '<div class="design-project-price">' + priceHtml + '</div>' +
         '<ul class="design-project-highlights">' + highlights + '</ul>' +
-        '<button type="button" class="design-select-button" data-select-design="' + code + '">' + (active ? 'Выбрано' : 'Выбрать') + '</button>' +
+        cta +
         '<details class="design-project-details"><summary>Полный состав</summary><ul>' + details + '</ul></details>' +
       '</div>' +
     '</article>';
@@ -846,7 +873,9 @@ function generateClientOffer() {
         <div>
           <h2>${escapeHtml(designProject.title)}</h2>
           <p>${escapeHtml(designProject.description)}</p>
-          <div class="design-offer-price">${rub.format(designProject.pricePerM2)} / м² · ${rub.format(designTotal)}</div>
+          <div class="design-offer-price">${designProject.included
+            ? 'Включён в стоимость ремонта'
+            : 'Доплата +' + rub.format(designProject.upgradePricePerM2) + ' / м² · ' + rub.format(designTotal)}</div>
         </div>
       </div>
       <div class="combined-offer">
@@ -947,7 +976,7 @@ $('designProjects')?.addEventListener('click', (event) => {
   const button = event.target.closest('[data-select-design]');
   const card = event.target.closest('[data-design-project]');
   const code = button?.dataset.selectDesign || card?.dataset.designProject;
-  if (!code || !DESIGN_PROJECTS[code]) return;
+  if (!code || !DESIGN_PROJECTS[code] || DESIGN_PROJECTS[code].included) return;
 
   selectedDesignProject = code;
   trackEvent('option_change', 'design_project', {
@@ -956,12 +985,6 @@ $('designProjects')?.addEventListener('click', (event) => {
     areaM2: num('areaM2'),
     total: getDesignProjectTotal()
   });
-  renderDesignProjects();
-});
-
-$('designNoneButton')?.addEventListener('click', () => {
-  selectedDesignProject = 'none';
-  trackEvent('option_change', 'design_project', { value: 'none' });
   renderDesignProjects();
 });
 
