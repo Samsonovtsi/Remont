@@ -1252,3 +1252,86 @@ input:focus,select:focus,textarea:focus{
   .design-project-image-wrap{height:190px;min-height:0}
   .design-project-card p{min-height:0}
 }
+
+
+/* Design upsell: technical project is included in renovation */
+.design-included-notice{
+  display:flex;
+  gap:11px;
+  align-items:flex-start;
+  margin-bottom:14px;
+  padding:13px 14px;
+  border:1px solid #d7e6dc;
+  border-radius:14px;
+  background:#f3faf5;
+}
+.design-included-icon{
+  width:24px;
+  height:24px;
+  flex:0 0 24px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:#1f7a49;
+  color:#fff;
+  font-size:12px;
+  font-weight:900;
+}
+.design-included-notice strong{
+  display:block;
+  font-size:12px;
+  line-height:1.3;
+}
+.design-included-notice div>span{
+  display:block;
+  margin-top:3px;
+  color:var(--muted);
+  font-size:10px;
+  line-height:1.4;
+}
+.design-project-card.included{
+  background:#fbfbfa;
+  border-color:#d8ddd9;
+  cursor:default;
+}
+.design-project-card.included:hover{
+  transform:none;
+  box-shadow:none;
+}
+.design-project-card.recommended{
+  border-color:#ef9a8f;
+  box-shadow:0 10px 26px rgba(227,58,46,.09);
+}
+.design-project-ribbon{
+  position:absolute;
+  left:12px;
+  top:12px;
+  padding:6px 9px;
+  border-radius:999px;
+  background:#181818;
+  color:#fff;
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.1px;
+}
+.design-project-card.included .design-project-badge{
+  background:#e5f4e9;
+  color:#1f7a49;
+}
+.design-included-price{
+  color:#1f7a49;
+}
+.design-included-button{
+  width:100%;
+  margin-top:13px;
+  border-radius:11px;
+  padding:11px 13px;
+  background:#edf5ef;
+  color:#1f7a49;
+  text-align:center;
+  font-size:11px;
+  font-weight:900;
+}
+.design-project-card.recommended .design-select-button{
+  background:var(--accent);
+}
