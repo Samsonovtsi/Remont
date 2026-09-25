@@ -77,7 +77,7 @@ function validateTarget(group: string, key: string, packageCode?: string) {
   }
 
   if (group === 'condition') {
-    if (!['new_build', 'secondary_good', 'secondary_worn', 'shell'].includes(key)) {
+    if (!['shell', 'white_box', 'developer_finish', 'secondary_good', 'secondary_cosmetic', 'secondary_worn'].includes(key)) {
       throw new Error('Некорректное состояние объекта.');
     }
     return;
