@@ -133,7 +133,7 @@ function renderPackages() {
     const el = document.createElement('article');
     el.className = 'package package-' + code + (code === selectedPackage ? ' active' : '');
 
-    const isApartment = $('propertyType')?.value === 'apartment';
+    const isApartment = ['apartment', 'apartment_new_build', 'apartment_secondary'].includes($('propertyType')?.value);
     const area = Math.max(num('areaM2'), 0);
     const minimumTotal = isApartment && area > 0 ? area * pkg.minPerM2 : 0;
     const priceText = isApartment
@@ -248,9 +248,53 @@ $('calculationMode').addEventListener('change', () => {
   $('exactFields').classList.toggle('hidden', $('calculationMode').value !== 'exact');
 });
 
+const conditionOptionsByProperty = {
+  apartment_new_build: [
+    ['shell', 'Без отделки (черновая)'],
+    ['white_box', 'Предчистовая (White Box)'],
+    ['developer_finish', 'Чистовая от застройщика']
+  ],
+  apartment_secondary: [
+    ['secondary_good', 'Хорошее состояние'],
+    ['secondary_cosmetic', 'Требуется косметический ремонт'],
+    ['secondary_worn', 'Требуется капитальный ремонт']
+  ],
+  house: [
+    ['shell', 'Без отделки / черновая'],
+    ['white_box', 'Предчистовая'],
+    ['secondary_good', 'Хорошее состояние'],
+    ['secondary_worn', 'Требуется капитальный ремонт']
+  ],
+  commercial: [
+    ['shell', 'Без отделки / черновое помещение'],
+    ['white_box', 'Подготовлено под чистовую отделку'],
+    ['secondary_good', 'Эксплуатируемое, хорошее состояние'],
+    ['secondary_worn', 'Требуется капитальный ремонт']
+  ]
+};
+
+function updateConditionOptions() {
+  const propertyType = $('propertyType').value;
+  const condition = $('condition');
+  const previous = condition.value;
+  const options = conditionOptionsByProperty[propertyType] || conditionOptionsByProperty.apartment_new_build;
+
+  condition.innerHTML = options
+    .map(([value, label]) => `<option value="${value}">${label}</option>`)
+    .join('');
+
+  if (options.some(([value]) => value === previous)) {
+    condition.value = previous;
+  }
+}
+
 $('propertyType').addEventListener('change', () => {
+  updateConditionOptions();
   renderPackages();
+  scheduleAutoCalculation();
 });
+
+updateConditionOptions();
 
 function setupCountChoice(groupId, hiddenId, otherId, otherMin) {
   const group = $(groupId);
