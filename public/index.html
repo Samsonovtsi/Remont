@@ -4,29 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Калькулятор ремонта</title>
-  <link rel="stylesheet" href="/styles.css?v=13" />
+  <link rel="stylesheet" href="/styles.css?v=14" />
 </head>
 <body>
   <main class="page">
-
-    <nav class="top-contacts" aria-label="Контакты">
-      <a class="top-contact top-contact-phone" href="tel:+79612006160" aria-label="Позвонить +7 (961) 200-61-60">
-        <span class="top-contact-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24"><path d="M6.6 10.8c1.6 3.1 3.5 5 6.6 6.6l2.2-2.2c.3-.3.7-.4 1.1-.2 1.2.4 2.5.7 3.8.7.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.7 21 3 13.3 3 3.7c0-.6.4-1 1-1h3.3c.6 0 1 .4 1 1 0 1.3.2 2.6.7 3.8.1.4 0 .8-.3 1.1l-2.1 2.2z"/></svg>
-        </span>
-        <span class="top-contact-text"><small>Горячая линия</small><strong>+7 (961) 200-61-60</strong></span>
-      </a>
-
-      <a class="top-contact top-contact-icon-only" href="https://t.me/+79612006160" target="_blank" rel="noopener noreferrer" aria-label="Написать в Telegram" title="Telegram">
-        <span class="top-contact-icon top-contact-telegram" aria-hidden="true">
-          <svg viewBox="0 0 24 24"><path d="M21.7 3.4 18.5 19c-.2 1.1-.9 1.4-1.8.9l-4.9-3.6-2.4 2.3c-.3.3-.5.5-1 .5l.4-5 9.1-8.2c.4-.4-.1-.6-.6-.2L6 12.8 1.2 11.3c-1-.3-1.1-1 .2-1.5L20.2 2.6c.9-.3 1.7.2 1.5.8z"/></svg>
-        </span>
-      </a>
-
-      <a class="top-contact top-contact-icon-only" href="https://max.ru/join/Yz6o7sPG2IE8V9tAulAxk5eZKzjvaeKi2x8YnJFBxDQ" target="_blank" rel="noopener noreferrer" aria-label="Написать в MAX" title="MAX">
-        <span class="top-contact-icon top-contact-max" aria-hidden="true">MAX</span>
-      </a>
-    </nav>
 
     <section class="hero">
       <div>
@@ -174,19 +155,23 @@
       </aside>
     </section>
   </main>
+  <aside class="floating-contacts" aria-label="Связаться с нами">
+    <a class="floating-contact floating-phone" href="tel:+79612006160" aria-label="Позвонить +7 (961) 200-61-60">
+      <span class="floating-icon floating-phone-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M6.6 10.8c1.6 3.1 3.5 5 6.6 6.6l2.2-2.2c.3-.3.7-.4 1.1-.2 1.2.4 2.5.7 3.8.7.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.7 21 3 13.3 3 3.7c0-.6.4-1 1-1h3.3c.6 0 1 .4 1 1 0 1.3.2 2.6.7 3.8.1.4 0 .8-.3 1.1l-2.1 2.2z"/></svg>
+      </span>
+      <span class="floating-phone-copy"><small>Горячая линия</small><strong>+7 (961) 200-61-60</strong></span>
+    </a>
 
-    <section class="contact-bar" aria-label="Связаться с нами">
-      <div class="contact-copy">
-        <strong>Нужна помощь?</strong>
-        <span>Свяжитесь с командой ремонта</span>
-      </div>
-      <div class="contact-links">
-        <a class="contact-link" href="tel:+79612006160">Позвонить: +7 (961) 200-61-60</a>
-        <a class="contact-link" href="https://t.me/+79612006160" target="_blank" rel="noopener noreferrer">Написать в Telegram</a>
-        <a class="contact-link" href="https://max.ru/join/Yz6o7sPG2IE8V9tAulAxk5eZKzjvaeKi2x8YnJFBxDQ" target="_blank" rel="noopener noreferrer">Написать в MAX</a>
-      </div>
-    </section>
+    <a class="floating-contact floating-round floating-telegram" href="https://t.me/+79612006160" target="_blank" rel="noopener noreferrer" aria-label="Написать в Telegram" title="Telegram">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.7 3.4 18.5 19c-.2 1.1-.9 1.4-1.8.9l-4.9-3.6-2.4 2.3c-.3.3-.5.5-1 .5l.4-5 9.1-8.2c.4-.4-.1-.6-.6-.2L6 12.8 1.2 11.3c-1-.3-1.1-1 .2-1.5L20.2 2.6c.9-.3 1.7.2 1.5.8z"/></svg>
+    </a>
 
-  <script src="/app.js?v=14"></script>
+    <a class="floating-contact floating-round floating-max" href="https://max.ru/join/Yz6o7sPG2IE8V9tAulAxk5eZKzjvaeKi2x8YnJFBxDQ" target="_blank" rel="noopener noreferrer" aria-label="Написать в MAX" title="MAX">
+      <span aria-hidden="true">MAX</span>
+    </a>
+  </aside>
+
+  <script src="/app.js?v=15"></script>
 </body>
 </html>
