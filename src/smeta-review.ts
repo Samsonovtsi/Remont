@@ -99,13 +99,14 @@ function validateTarget(group: RateGroup, key: string) {
 export async function replaceRateCandidates(documentId: number, candidates: ExtractedRateCandidate[]) {
   await initReviewStore();
   const db = getPool();
+  const client = await db.connect();
 
-  await db.query('BEGIN');
+  await client.query('BEGIN');
   try {
-    await db.query('DELETE FROM smeta_rate_candidates WHERE document_id = $1 AND review_status = $2', [documentId, 'pending']);
+    await client.query('DELETE FROM smeta_rate_candidates WHERE document_id = $1 AND review_status = $2', [documentId, 'pending']);
 
     for (const candidate of candidates) {
-      await db.query(
+      await client.query(
         `
           INSERT INTO smeta_rate_candidates (
             document_id, source_ref, description, unit, quantity, unit_price, total,
@@ -129,10 +130,12 @@ export async function replaceRateCandidates(documentId: number, candidates: Extr
       );
     }
 
-    await db.query('COMMIT');
+    await client.query('COMMIT');
   } catch (error) {
-    await db.query('ROLLBACK');
+    await client.query('ROLLBACK');
     throw error;
+  } finally {
+    client.release();
   }
 }
 
@@ -177,21 +180,22 @@ export async function approveRateCandidate(
   await initReviewStore();
   validateTarget(input.group, input.key);
   const db = getPool();
+  const client = await db.connect();
 
-  await db.query('BEGIN');
+  await client.query('BEGIN');
   try {
-    const source = await db.query(
+    const source = await client.query(
       'SELECT id, document_id FROM smeta_rate_candidates WHERE id = $1 FOR UPDATE',
       [id]
     );
     if (!source.rows[0]) {
-      await db.query('ROLLBACK');
+      await client.query('ROLLBACK');
       return null;
     }
 
     const documentId = Number(source.rows[0].document_id);
 
-    await db.query(
+    await client.query(
       `
         UPDATE smeta_rate_candidates
         SET review_status = 'approved',
@@ -205,7 +209,7 @@ export async function approveRateCandidate(
       [id, input.group, input.key, input.packageCode, input.value]
     );
 
-    await db.query(
+    await client.query(
       `
         INSERT INTO pricing_rate_overrides (
           target_group, target_key, package_code, value, source_candidate_id, source_document_id
@@ -221,11 +225,13 @@ export async function approveRateCandidate(
       [input.group, input.key, input.packageCode, input.value, id, documentId]
     );
 
-    await db.query('COMMIT');
+    await client.query('COMMIT');
+    client.release();
     await refreshPricingOverrides(true);
     return { id, ...input };
   } catch (error) {
-    await db.query('ROLLBACK');
+    await client.query('ROLLBACK');
+    client.release();
     throw error;
   }
 }
