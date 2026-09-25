@@ -191,7 +191,8 @@ function getSelectedDesignProject() {
 function getDesignProjectTotal() {
   const project = getSelectedDesignProject();
   const area = Math.max(num('areaM2'), 0);
-  return project && area > 0 ? Math.round((project.upgradePricePerM2 || 0) * area) : 0;
+  if (!project || area <= 0 || project.included) return 0;
+  return Math.round(project.pricePerM2 * area);
 }
 
 function getDesignProjectRetailTotal() {
@@ -240,7 +241,7 @@ function renderDesignSummary() {
   const total = $('designProjectTotal');
   const combined = $('combinedTotal');
   const project = getSelectedDesignProject();
-  const designUpgradeTotal = getDesignProjectTotal();
+  const designChargeTotal = getDesignProjectTotal();
   const designRetailTotal = getDesignProjectRetailTotal();
 
   if (!summary) return;
@@ -262,7 +263,7 @@ function renderDesignSummary() {
     }
 
     if (combined && latestEstimate) {
-      combined.textContent = rub.format(latestEstimate.clientTotal + designUpgradeTotal);
+      combined.textContent = rub.format(latestEstimate.clientTotal + designChargeTotal);
     }
   }
 
@@ -769,9 +770,9 @@ function generateClientOffer() {
   const offerComment = escapeHtml($('offerComment').value.trim());
   const imageSrc = packageFullImage(selectedPackage);
   const designProject = getSelectedDesignProject();
-  const designUpgradeTotal = getDesignProjectTotal();
+  const designChargeTotal = getDesignProjectTotal();
   const designRetailTotal = getDesignProjectRetailTotal();
-  const combinedTotal = latestEstimate.clientTotal + designUpgradeTotal;
+  const combinedTotal = latestEstimate.clientTotal + designChargeTotal;
 
   const estimateRows = (latestEstimate.lines || []).map(line => `
     <tr>
@@ -785,7 +786,7 @@ function generateClientOffer() {
     clientTotal: latestEstimate.clientTotal,
     pricePerM2: latestEstimate.pricePerM2Final,
     designProject: selectedDesignProject,
-    designProjectTotal: designUpgradeTotal
+    designProjectTotal: designChargeTotal
   });
 
   const popup = window.open('', '_blank');
