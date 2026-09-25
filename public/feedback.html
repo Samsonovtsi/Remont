@@ -40,6 +40,21 @@
     .kpi-note{font-size:10px;color:var(--muted);margin-top:4px}
     .conversion{color:var(--ok);font-weight:800}
     .table-wrap{overflow:auto;background:#fff;border:1px solid var(--line);border-radius:18px}
+    .source-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    .source-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px}
+    .source-card span{display:block;font-size:10px;color:var(--muted)}
+    .source-card strong{display:block;margin-top:4px;font-size:19px}
+    .source-note{font-size:11px;line-height:1.5;color:var(--muted)}
+    .data-block{margin-top:12px}
+    .data-block h3{margin:0 0 8px;font-size:14px}
+    .compact-table{min-width:760px}
+    .compact-table th,.compact-table td{font-size:11px;padding:8px 9px}
+    .upload-grid{display:grid;grid-template-columns:1.3fr 1fr auto;gap:10px;align-items:end}
+    .upload-grid input[type=file]{padding:8px}
+    .upload-status{font-size:11px;min-height:16px;margin-top:8px}
+    .file-actions{display:flex;gap:6px;flex-wrap:wrap}
+    .file-actions button{font-size:10px;padding:6px 8px}
+    .danger{background:#a62a22!important;color:#fff!important}
     table{width:100%;border-collapse:collapse;min-width:1200px}
     th,td{padding:10px 11px;border-bottom:1px solid var(--line);text-align:left;font-size:12px;vertical-align:top}
     th{position:sticky;top:0;background:#faf8f5;z-index:1;font-size:11px}
@@ -55,7 +70,7 @@
     .error{color:#a62a22;font-weight:700}
     .hidden{display:none}
     @media(max-width:1050px){.analytics-grid{grid-template-columns:1fr 1fr}.analytics-grid .chart-card:first-child{grid-column:1/-1}}
-    @media(max-width:760px){.top{display:block}.auth{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}.analytics-grid{grid-template-columns:1fr}.analytics-grid .chart-card:first-child{grid-column:auto}h1{font-size:30px}}
+    @media(max-width:760px){.top{display:block}.auth{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}.analytics-grid{grid-template-columns:1fr}.analytics-grid .chart-card:first-child{grid-column:auto}.source-grid{grid-template-columns:1fr}.upload-grid{grid-template-columns:1fr}h1{font-size:30px}}
   </style>
 </head>
 <body>
@@ -122,6 +137,85 @@
       </div>
 
       <div class="section-head">
+        <div>
+          <h2>Данные, используемые в расчёте</h2>
+          <div class="muted" style="font-size:11px;margin-top:4px">Текущие ставки, коэффициенты, матрица цен и дополнительные работы.</div>
+        </div>
+      </div>
+
+      <div class="source-grid">
+        <div class="source-card"><span>Вознаграждение риелтора</span><strong id="sourceAgentRate">—</strong></div>
+        <div class="source-card"><span>НДС</span><strong id="sourceVatRate">—</strong></div>
+        <div class="source-card"><span>Доставка от материалов</span><strong id="sourceDeliveryRate">—</strong></div>
+      </div>
+
+      <div class="data-block">
+        <h3>Пакетные цены по площади квартиры</h3>
+        <div class="table-wrap"><table class="compact-table">
+          <thead><tr><th>Площадь</th><th>Минимальный</th><th>Стандарт</th><th>Комфорт</th><th>Премиум</th></tr></thead>
+          <tbody id="officialRatesRows"></tbody>
+        </table></div>
+      </div>
+
+      <div class="data-block">
+        <h3>Ставки работ и коэффициенты материалов из смет</h3>
+        <div class="table-wrap"><table class="compact-table">
+          <thead><tr><th>Параметр</th><th>Минимальный</th><th>Стандарт</th><th>Комфорт</th><th>Премиум</th></tr></thead>
+          <tbody id="smetaRatesRows"></tbody>
+        </table></div>
+      </div>
+
+      <div class="data-block">
+        <h3>Дополнительные работы и материалы</h3>
+        <div class="table-wrap"><table class="compact-table">
+          <thead><tr><th>Параметр</th><th>Минимальный</th><th>Стандарт</th><th>Комфорт</th><th>Премиум</th></tr></thead>
+          <tbody id="extraRatesRows"></tbody>
+        </table></div>
+      </div>
+
+      <div class="data-block">
+        <h3>Параметры коммерческой плиточной сметы</h3>
+        <div class="table-wrap"><table class="compact-table">
+          <thead><tr><th>Параметр</th><th>Значение</th></tr></thead>
+          <tbody id="commercialRatesRows"></tbody>
+        </table></div>
+      </div>
+
+      <div class="data-block panel" style="margin-top:12px">
+        <h3 style="margin:0 0 8px">Логика расчёта</h3>
+        <div id="calculationNotes" class="source-note"></div>
+      </div>
+
+      <div class="section-head">
+        <div>
+          <h2>Исходные сметы</h2>
+          <div class="muted" style="font-size:11px;margin-top:4px">Можно добавлять новые PDF/XLSX. Загрузка не меняет ставки автоматически — документ сохраняется как источник для последующей проверки.</div>
+        </div>
+      </div>
+
+      <section class="panel">
+        <div class="upload-grid">
+          <label>
+            <span>Файл сметы</span>
+            <input id="smetaFile" type="file" accept=".pdf,.xlsx,.xls,.xlsm,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" />
+          </label>
+          <label>
+            <span>Комментарий</span>
+            <input id="smetaNote" type="text" maxlength="1000" placeholder="Объект, пакет, дата или пояснение" />
+          </label>
+          <button id="uploadSmetaBtn" type="button">Загрузить смету</button>
+        </div>
+        <div id="smetaUploadStatus" class="upload-status"></div>
+      </section>
+
+      <div class="table-wrap" style="margin-top:10px">
+        <table class="compact-table">
+          <thead><tr><th>Дата</th><th>Файл</th><th>Размер</th><th>Комментарий</th><th>Статус</th><th>Действия</th></tr></thead>
+          <tbody id="smetaRows"></tbody>
+        </table>
+      </div>
+
+      <div class="section-head">
         <h2>Журнал ошибок смет</h2>
       </div>
 
@@ -165,6 +259,6 @@
     </section>
   </main>
 
-  <script src="/feedback-admin.js?v=2"></script>
+  <script src="/feedback-admin.js?v=3"></script>
 </body>
 </html>
