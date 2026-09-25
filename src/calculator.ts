@@ -232,7 +232,32 @@ function calculateSmetaEstimate(input: EstimateRequest): EstimateResult {
     group: 'tax'
   });
 
-  const clientTotal = roundRub(subtotalBeforeVat + vat);
+  const rawClientTotal = roundRub(subtotalBeforeVat + vat);
+
+  // Прайс пакетов в интерфейсе относится к квартирам и задаёт минимальную
+  // коммерческую стоимость выбранного пакета. Дополнительные опции могут
+  // увеличить смету, но их отключение не должно опускать итог ниже
+  // опубликованной цены "от ... ₽/м²".
+  const advertisedMinimumTotal =
+    input.propertyType === 'apartment'
+      ? roundRub(input.areaM2 * PACKAGE_PRICES[input.package].minPerM2)
+      : 0;
+
+  const minimumAdjustment =
+    advertisedMinimumTotal > rawClientTotal
+      ? advertisedMinimumTotal - rawClientTotal
+      : 0;
+
+  if (minimumAdjustment > 0) {
+    lines.push({
+      code: 'package_minimum_adjustment',
+      title: 'Корректировка до минимальной стоимости пакета',
+      amount: roundRub(minimumAdjustment),
+      group: 'adjustment'
+    });
+  }
+
+  const clientTotal = rawClientTotal + roundRub(minimumAdjustment);
   const agentRewardBase = roundRub(worksTotal);
   const agentReward = roundRub(agentRewardBase * AGENT_REWARD_RATE);
 
@@ -240,6 +265,13 @@ function calculateSmetaEstimate(input: EstimateRequest): EstimateResult {
     input.condition === 'new_build' && input.propertyType === 'apartment'
       ? ''
       : ' Тип и состояние объекта сохранены как параметры, но автоматическая процентная надбавка не применяется: в исходных сметах такой коэффициент не подтверждён.';
+
+  const minimumNote =
+    minimumAdjustment > 0
+      ? ' Для квартиры применён нижний порог выбранного пакета: итоговая цена не может быть ниже ' +
+        PACKAGE_PRICES[input.package].minPerM2.toLocaleString('ru-RU') +
+        ' ₽/м². Отключение дополнительных опций не уменьшает базовую стоимость пакета.'
+      : '';
 
   return {
     currency: 'RUB',
@@ -278,8 +310,8 @@ function calculateSmetaEstimate(input: EstimateRequest): EstimateResult {
     },
     disclaimer:
       input.calculationMode === 'exact'
-        ? 'Смета рассчитана по введённым замерам и тарифам из предоставленных смет сентября 2026. Доставка = 10% от материалов, НДС = 5%, вознаграждение риелтора = 5% только от стоимости работ.' + objectNote
-        : 'Быстрый расчёт строит предполагаемую смету по фактическим ставкам и структуре загруженных смет; объёмы работ оцениваются автоматически по площади и параметрам объекта. Для договорной стоимости используйте режим «Точная по замерам». Вознаграждение риелтора = 5% только от стоимости работ.' + objectNote
+        ? 'Смета рассчитана по введённым замерам и тарифам из предоставленных смет сентября 2026. Доставка = 10% от материалов, НДС = 5%, вознаграждение риелтора = 5% только от стоимости работ.' + objectNote + minimumNote
+        : 'Быстрый расчёт строит предполагаемую смету по фактическим ставкам и структуре загруженных смет; объёмы работ оцениваются автоматически по площади и параметрам объекта. Для договорной стоимости используйте режим «Точная по замерам». Вознаграждение риелтора = 5% только от стоимости работ.' + objectNote + minimumNote
   };
 }
 
