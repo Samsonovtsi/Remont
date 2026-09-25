@@ -167,13 +167,30 @@
       </div>
 
       <div class="source-grid">
-        <div class="source-card"><span>Вознаграждение риелтора</span><strong id="sourceAgentRate">—</strong></div>
-        <div class="source-card"><span>НДС</span><strong id="sourceVatRate">—</strong></div>
-        <div class="source-card"><span>Доставка от материалов</span><strong id="sourceDeliveryRate">—</strong></div>
+        <div class="source-card">
+          <span>Вознаграждение риелтора, %</span>
+          <div class="editable-value"><input id="sourceAgentRateInput" type="number" min="0" step="0.1" /><button type="button" data-save-constant="agentRewardRate">Сохранить</button></div>
+        </div>
+        <div class="source-card">
+          <span>НДС, %</span>
+          <div class="editable-value"><input id="sourceVatRateInput" type="number" min="0" step="0.1" /><button type="button" data-save-constant="vatRate">Сохранить</button></div>
+        </div>
+        <div class="source-card">
+          <span>Доставка от материалов, %</span>
+          <div class="editable-value"><input id="sourceDeliveryRateInput" type="number" min="0" step="0.1" /><button type="button" data-save-constant="deliveryRate">Сохранить</button></div>
+        </div>
       </div>
 
       <div class="data-block">
-        <h3>Пакетные цены по площади квартиры</h3>
+        <h3>Минимальная стоимость пакета</h3>
+        <div class="table-wrap"><table class="compact-table">
+          <thead><tr><th>Пакет</th><th>Минимум, ₽/м²</th><th>Действие</th></tr></thead>
+          <tbody id="packageMinRows"></tbody>
+        </table></div>
+      </div>
+
+      <div class="data-block">
+        <h3>Матрица техкарты по площади квартиры <span class="muted" style="font-weight:400">(справочно)</span></h3>
         <div class="table-wrap"><table class="compact-table">
           <thead><tr><th>Площадь</th><th>Минимальный</th><th>Стандарт</th><th>Комфорт</th><th>Премиум</th></tr></thead>
           <tbody id="officialRatesRows"></tbody>
