@@ -281,3 +281,77 @@ textarea:focus{border-color:#999}
     justify-content:center;
   }
 }
+
+
+/* Floating contacts: vertical stack + click-to-reveal phone */
+.floating-contacts{
+  position:fixed;
+  right:22px;
+  bottom:22px;
+  z-index:1200;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:10px;
+}
+.floating-contact{
+  text-decoration:none;
+  transition:transform .15s ease, box-shadow .15s ease;
+  box-shadow:0 8px 24px rgba(0,0,0,.14);
+}
+.floating-contact:hover{transform:translateY(-2px)}
+.floating-round{
+  width:58px;
+  height:58px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  color:#fff;
+  border:6px solid #fff;
+  padding:0;
+  cursor:pointer;
+}
+.floating-round svg{width:22px;height:22px;fill:currentColor}
+.floating-phone-button{background:#181818}
+.floating-telegram{background:#229ED9}
+.floating-max{background:#178DFF;font-size:10px;font-weight:900;letter-spacing:.3px}
+.floating-phone-popover{
+  position:absolute;
+  right:72px;
+  top:0;
+  min-width:210px;
+  background:#fff;
+  color:var(--ink);
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:12px 14px;
+  box-shadow:0 10px 28px rgba(0,0,0,.16);
+  opacity:0;
+  visibility:hidden;
+  transform:translateX(8px);
+  transition:opacity .15s ease, transform .15s ease, visibility .15s ease;
+}
+.floating-phone-popover.is-open{
+  opacity:1;
+  visibility:visible;
+  transform:translateX(0);
+}
+.floating-phone-popover small{
+  display:block;
+  color:var(--muted);
+  font-size:10px;
+  margin-bottom:4px;
+}
+.floating-phone-popover a{
+  color:var(--ink);
+  font-size:16px;
+  font-weight:800;
+  text-decoration:none;
+  white-space:nowrap;
+}
+@media(max-width:700px){
+  .floating-contacts{right:12px;bottom:12px;gap:8px}
+  .floating-round{width:52px;height:52px;border-width:5px}
+  .floating-phone-popover{right:62px;min-width:190px}
+  .floating-phone-popover a{font-size:14px}
+}
