@@ -33,8 +33,19 @@ import {
   getSmetaDocument,
   listSmetaDocuments,
   saveSmetaDocument,
-  smetaUploadSchema
+  smetaUploadSchema,
+  updateSmetaDocumentStatus
 } from './smeta-store.js';
+import { analyzeSmetaDocument } from './smeta-analyzer.js';
+import {
+  approveRateCandidate,
+  listPricingOverrides,
+  listRateCandidates,
+  rateApprovalSchema,
+  refreshPricingOverrides,
+  rejectRateCandidate,
+  replaceRateCandidates
+} from './smeta-review.js';
 
 const app = Fastify({ logger: true, bodyLimit: 22 * 1024 * 1024 });
 
@@ -80,6 +91,12 @@ app.get('/api/v1/admin/calculation-source', async (request, reply) => {
   const auth = requireFeedbackAdmin(request as any);
   if (!auth.ok) return reply.code(auth.code).send({ error: auth.error });
 
+  try {
+    await refreshPricingOverrides();
+  } catch (error) {
+    request.log.warn(error);
+  }
+
   return {
     updatedAt: '2026-09-25',
     packagePrices: PACKAGE_PRICES,
@@ -92,6 +109,7 @@ app.get('/api/v1/admin/calculation-source', async (request, reply) => {
       vatRate: VAT_RATE,
       deliveryRate: DELIVERY_RATE
     },
+    activeOverrides: await listPricingOverrides().catch(() => []),
     calculationNotes: [
       'Быстрый режим оценивает геометрию автоматически по площади, числу жилых комнат и санузлов.',
       'Количество жилых комнат в интерфейсе указывается без кухни; кухня уже входит в общую площадь объекта.',
@@ -124,7 +142,31 @@ app.post('/api/v1/admin/smetas', async (request, reply) => {
   try {
     const input = smetaUploadSchema.parse(request.body);
     const row = await saveSmetaDocument(input);
-    return reply.code(201).send({ row });
+
+    let analysis = { count: 0, error: '' };
+    try {
+      const document = await getSmetaDocument(Number(row.id));
+      if (document) {
+        const candidates = await analyzeSmetaDocument({
+          buffer: document.content,
+          fileName: document.original_name,
+          mimeType: document.mime_type,
+          note: document.note || ''
+        });
+        await replaceRateCandidates(Number(row.id), candidates);
+        await updateSmetaDocumentStatus(Number(row.id), candidates.length ? 'analyzed' : 'no_rates_found');
+        analysis = { count: candidates.length, error: '' };
+      }
+    } catch (analysisError) {
+      request.log.warn(analysisError);
+      await updateSmetaDocumentStatus(Number(row.id), 'analysis_error').catch(() => {});
+      analysis = {
+        count: 0,
+        error: analysisError instanceof Error ? analysisError.message : 'Ошибка автоматического разбора'
+      };
+    }
+
+    return reply.code(201).send({ row, analysis });
   } catch (error) {
     if (error instanceof ZodError) {
       return reply.code(400).send({
@@ -179,9 +221,114 @@ app.delete('/api/v1/admin/smetas/:id', async (request, reply) => {
   }
 });
 
+app.get('/api/v1/admin/rate-candidates', async (request, reply) => {
+  const auth = requireFeedbackAdmin(request as any);
+  if (!auth.ok) return reply.code(auth.code).send({ error: auth.error });
+
+  try {
+    const query = request.query as { documentId?: string };
+    const documentId = query.documentId ? Number(query.documentId) : undefined;
+    return { rows: await listRateCandidates(documentId) };
+  } catch (error) {
+    request.log.error(error);
+    return reply.code(503).send({
+      error: 'RATE_CANDIDATES_NOT_AVAILABLE',
+      message: error instanceof Error ? error.message : 'Найденные ставки недоступны'
+    });
+  }
+});
+
+app.post('/api/v1/admin/smetas/:id/analyze', async (request, reply) => {
+  const auth = requireFeedbackAdmin(request as any);
+  if (!auth.ok) return reply.code(auth.code).send({ error: auth.error });
+
+  try {
+    const id = Number((request.params as { id: string }).id);
+    if (!Number.isInteger(id) || id <= 0) return reply.code(400).send({ error: 'INVALID_ID' });
+
+    const document = await getSmetaDocument(id);
+    if (!document) return reply.code(404).send({ error: 'NOT_FOUND' });
+
+    const candidates = await analyzeSmetaDocument({
+      buffer: document.content,
+      fileName: document.original_name,
+      mimeType: document.mime_type,
+      note: document.note || ''
+    });
+
+    await replaceRateCandidates(id, candidates);
+    await updateSmetaDocumentStatus(id, candidates.length ? 'analyzed' : 'no_rates_found');
+    return { count: candidates.length, rows: await listRateCandidates(id) };
+  } catch (error) {
+    request.log.error(error);
+    const id = Number((request.params as { id: string }).id);
+    if (Number.isInteger(id) && id > 0) {
+      await updateSmetaDocumentStatus(id, 'analysis_error').catch(() => {});
+    }
+    return reply.code(503).send({
+      error: 'SMETA_ANALYSIS_FAILED',
+      message: error instanceof Error ? error.message : 'Не удалось разобрать смету'
+    });
+  }
+});
+
+app.post('/api/v1/admin/rate-candidates/:id/approve', async (request, reply) => {
+  const auth = requireFeedbackAdmin(request as any);
+  if (!auth.ok) return reply.code(auth.code).send({ error: auth.error });
+
+  try {
+    const id = Number((request.params as { id: string }).id);
+    if (!Number.isInteger(id) || id <= 0) return reply.code(400).send({ error: 'INVALID_ID' });
+
+    const input = rateApprovalSchema.parse(request.body);
+    const approved = await approveRateCandidate(id, input);
+    if (!approved) return reply.code(404).send({ error: 'NOT_FOUND' });
+
+    return {
+      approved,
+      activeOverrides: await listPricingOverrides()
+    };
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return reply.code(400).send({
+        error: 'VALIDATION_ERROR',
+        details: error.flatten()
+      });
+    }
+
+    request.log.error(error);
+    return reply.code(503).send({
+      error: 'RATE_APPROVAL_FAILED',
+      message: error instanceof Error ? error.message : 'Не удалось применить ставку'
+    });
+  }
+});
+
+app.post('/api/v1/admin/rate-candidates/:id/reject', async (request, reply) => {
+  const auth = requireFeedbackAdmin(request as any);
+  if (!auth.ok) return reply.code(auth.code).send({ error: auth.error });
+
+  try {
+    const id = Number((request.params as { id: string }).id);
+    if (!Number.isInteger(id) || id <= 0) return reply.code(400).send({ error: 'INVALID_ID' });
+
+    const rejected = await rejectRateCandidate(id);
+    if (!rejected) return reply.code(404).send({ error: 'NOT_FOUND' });
+    return { ok: true };
+  } catch (error) {
+    request.log.error(error);
+    return reply.code(503).send({ error: 'RATE_REJECTION_FAILED' });
+  }
+});
+
 app.post('/api/v1/estimate', async (request, reply) => {
   try {
     const input = estimateRequestSchema.parse(request.body);
+    try {
+      await refreshPricingOverrides();
+    } catch (overrideError) {
+      request.log.warn(overrideError);
+    }
     return calculateEstimate(input);
   } catch (error) {
     if (error instanceof ZodError) {
