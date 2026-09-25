@@ -698,7 +698,16 @@ input:focus,select:focus,textarea:focus{
 .floating-round svg{width:19px;height:19px;fill:currentColor}
 .floating-phone-button{background:#181818}
 .floating-telegram{background:#229ED9}
-.floating-max{background:#178DFF;font-size:8px;font-weight:900}
+.floating-max{
+  background:#fff;
+  font-size:0;
+  font-weight:900;
+}
+.floating-max .max-logo{
+  width:30px;
+  height:30px;
+  display:block;
+}
 .floating-phone-popover{
   position:absolute;
   right:61px;
