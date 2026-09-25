@@ -229,9 +229,22 @@ export function getOfficialApartmentPackageRate(areaM2: number, code: PackageCod
   };
 }
 
-export const AGENT_REWARD_RATE = 0.05;
-export const VAT_RATE = 0.05;
-export const DELIVERY_RATE = 0.10;
+export let AGENT_REWARD_RATE = 0.05;
+export let VAT_RATE = 0.05;
+export let DELIVERY_RATE = 0.10;
+
+export function setPricingConstant(
+  key: 'agentRewardRate' | 'vatRate' | 'deliveryRate',
+  value: number
+) {
+  if (!Number.isFinite(value) || value < 0) {
+    throw new Error('Некорректное значение коэффициента');
+  }
+
+  if (key === 'agentRewardRate') AGENT_REWARD_RATE = value;
+  if (key === 'vatRate') VAT_RATE = value;
+  if (key === 'deliveryRate') DELIVERY_RATE = value;
+}
 
 // В предоставленных сметах нет подтверждённых процентных надбавок
 // по типу/состоянию объекта. Поэтому эти параметры не меняют цену автоматически.
