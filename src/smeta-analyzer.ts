@@ -61,6 +61,8 @@ function suggestTarget(description: string, unit: string): {
 
   const exact = (group: RateGroup, key: string, confidence = 0.93) => ({ group, key, confidence });
 
+  if (/чернов/.test(d) && /материал/.test(d)) return exact('smeta', 'roughMaterialsFactor', 0.78);
+  if (/(чистов|отделоч)/.test(d) && /материал/.test(d)) return exact('smeta', 'cleanMaterialsFactor', 0.78);
   if (/чернов/.test(d) && /стен/.test(d)) return exact('smeta', 'roughWallPerM2');
   if (/(чистов|финиш)/.test(d) && /стен/.test(d)) return exact('smeta', 'cleanWallPerM2');
   if (/чернов/.test(d) && /пол/.test(d)) return exact('smeta', 'roughFloorPerM2');
