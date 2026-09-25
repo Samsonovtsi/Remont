@@ -36,19 +36,15 @@
             <label class="field">
               <span>Тип объекта</span>
               <select id="propertyType">
-                <option value="apartment">Квартира</option>
+                <option value="apartment_new_build">Квартира — новостройка</option>
+                <option value="apartment_secondary">Квартира — вторичка</option>
                 <option value="house">Дом</option>
                 <option value="commercial">Коммерция</option>
               </select>
             </label>
             <label class="field">
               <span>Состояние</span>
-              <select id="condition">
-                <option value="new_build">Новостройка</option>
-                <option value="secondary_good">Вторичка, хорошее состояние</option>
-                <option value="secondary_worn">Вторичка, нужен ремонт</option>
-                <option value="shell">Черновая отделка</option>
-              </select>
+              <select id="condition"></select>
             </label>
             <div class="field room-control">
               <span>Жилых комнат <small>без кухни</small></span>
@@ -278,6 +274,6 @@
     </a>
   </aside>
 
-  <script src="/app.js?v=27"></script>
+  <script src="/app.js?v=28"></script>
 </body>
 </html>
