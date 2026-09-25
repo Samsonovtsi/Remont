@@ -12,6 +12,33 @@ let estimateAbortController = null;
 let feedbackSending = false;
 const $ = (id) => document.getElementById(id);
 
+const analyticsSessionId = (() => {
+  const key = 'remontAnalyticsSession';
+  const existing = sessionStorage.getItem(key);
+  if (existing) return existing;
+  const created = (globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2) + Date.now().toString(36));
+  sessionStorage.setItem(key, created);
+  return created;
+})();
+
+function trackEvent(eventType, eventName = '', meta = {}) {
+  const body = JSON.stringify({
+    eventType,
+    eventName,
+    sessionId: analyticsSessionId,
+    path: location.pathname,
+    referrer: document.referrer || '',
+    meta
+  });
+
+  fetch('/api/v1/analytics', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body,
+    keepalive: true
+  }).catch(() => {});
+}
+
 function escapeHtml(value = '') {
   return String(value)
     .replaceAll('&', '&amp;')
@@ -135,6 +162,7 @@ function renderPackages() {
     el.addEventListener('click', (event) => {
       if (event.target.closest('details')) return;
       selectedPackage = code;
+      trackEvent('package_click', code, { packageTitle: pkg.title });
       renderPackages();
       scheduleAutoCalculation();
     });
@@ -255,9 +283,16 @@ async function sendFeedback(status) {
     setFeedbackStatus(
       status === 'ok'
         ? 'Спасибо. Отметка сохранена.'
-        : 'Спасибо. Ошибка записана в таблицу.',
+        : 'Спасибо. Ошибка записана в журнал.',
       'success'
     );
+
+    trackEvent('feedback_submit', status, {
+      issueType: body.issueType,
+      expectedTotal: body.expectedTotal ?? null,
+      package: selectedPackage,
+      areaM2: body.input.areaM2
+    });
 
     if (status === 'error') {
       $('feedbackForm').classList.add('hidden');
@@ -278,6 +313,10 @@ function openFeedbackForm() {
     setFeedbackStatus('Сначала дождитесь расчёта сметы.', 'error-state');
     return;
   }
+  trackEvent('feedback_open', 'error_form', {
+    package: selectedPackage,
+    areaM2: latestEstimate.areaM2
+  });
   $('feedbackForm').classList.remove('hidden');
   $('feedbackExpectedTotal').focus();
 }
@@ -312,6 +351,12 @@ function generateClientOffer() {
       <td>${rub.format(line.amount)}</td>
     </tr>
   `).join('');
+
+  trackEvent('offer_generate', selectedPackage, {
+    areaM2: latestEstimate.areaM2,
+    clientTotal: latestEstimate.clientTotal,
+    pricePerM2: latestEstimate.pricePerM2Final
+  });
 
   const popup = window.open('', '_blank');
   if (!popup) {
@@ -459,12 +504,24 @@ function scheduleAutoCalculation() {
 $('calculator').addEventListener('submit', async (event) => {
   event.preventDefault();
   clearTimeout(autoCalcTimer);
+  trackEvent('calculate', 'manual', {
+    package: selectedPackage,
+    areaM2: num('areaM2'),
+    calculationMode: $('calculationMode').value
+  });
   await calculateAndRender({ showButtonState: true });
 });
 
 $('calculator').querySelectorAll('input, select').forEach((field) => {
   field.addEventListener('input', scheduleAutoCalculation);
-  field.addEventListener('change', scheduleAutoCalculation);
+  field.addEventListener('change', () => {
+    scheduleAutoCalculation();
+    const value = field.type === 'checkbox' ? field.checked : field.value;
+    trackEvent('option_change', field.id || field.name || 'field', {
+      value,
+      package: selectedPackage
+    });
+  });
 });
 
 $('generateOfferButton').addEventListener('click', generateClientOffer);
@@ -473,6 +530,16 @@ $('feedbackOkButton').addEventListener('click', () => sendFeedback('ok'));
 $('feedbackErrorButton').addEventListener('click', openFeedbackForm);
 $('feedbackSendButton').addEventListener('click', () => sendFeedback('error'));
 $('feedbackCancelButton').addEventListener('click', closeFeedbackForm);
+
+document.querySelectorAll('a[href^="tel:"], a[href*="t.me/"], a[href*="max.ru/"]').forEach((link) => {
+  link.addEventListener('click', () => {
+    const href = link.getAttribute('href') || '';
+    const channel = href.startsWith('tel:') ? 'phone' : href.includes('t.me/') ? 'telegram' : 'max';
+    trackEvent('contact_click', channel);
+  });
+});
+
+trackEvent('page_view', 'calculator');
 
 (async () => {
   try {
