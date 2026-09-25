@@ -5,7 +5,56 @@ const rub = new Intl.NumberFormat('ru-RU', {
 });
 
 let selectedPackage = 'comfort';
+let selectedDesignProject = 'none';
 let packageData = {};
+
+const DESIGN_PROJECTS = {
+  technical: {
+    title: 'Технический проект',
+    pricePerM2: 1800,
+    image: '/images/design/technical.svg?v=20260925-1',
+    description: 'Комплект технических чертежей и схем для выполнения ремонта без визуализации.',
+    highlights: ['12 базовых планов и схем', 'Замеры и фото/видеофиксация', 'Без визуализации'],
+    includes: [
+      'Составление технического задания',
+      'Выезд на объект, замеры, фото- и видеофиксация',
+      'План расстановки мебели',
+      'План демонтажа и монтажа',
+      'План расстановки сантехники',
+      'План потолка',
+      'План светильников',
+      'План выключателей',
+      'План розеток',
+      'План тёплого пола',
+      'План напольных покрытий',
+      'План настенных покрытий'
+    ]
+  },
+  express: {
+    title: 'Экспресс-проект с коллажами',
+    pricePerM2: 2300,
+    image: '/images/design/express.svg?v=20260925-1',
+    description: 'Техническая база плюс коллажи для согласования стиля, цветов и материалов.',
+    highlights: ['Всё из технического проекта', 'Коллажи помещений', 'Спецификация отделочных материалов'],
+    includes: ['Всё из технического проекта', 'Коллажи по помещениям', 'Спецификация отделочных материалов']
+  },
+  full: {
+    title: 'Полный проект',
+    pricePerM2: 3000,
+    image: '/images/design/full.svg?v=20260925-1',
+    description: 'Полный рабочий проект с развёртками стен и визуализацией помещений.',
+    highlights: ['Всё из экспресс-проекта', 'Развёртки стен', 'Визуализация помещений'],
+    includes: ['Всё из экспресс-проекта', 'Развёртки стен помещений', 'Визуализация помещений']
+  },
+  extended: {
+    title: 'Расширенный проект',
+    pricePerM2: 3500,
+    image: '/images/design/extended.svg?v=20260925-1',
+    description: 'Максимальная детализация проекта, мебельные решения и обзор интерьера 360°.',
+    highlights: ['Всё из полного проекта', 'Эскизы корпусной мебели', 'Визуализация + обзор 360°'],
+    includes: ['Всё из полного проекта', 'Эскизные чертежи корпусной мебели', 'Визуализация помещений с обзором 360°']
+  }
+};
 let latestEstimate = null;
 let autoCalcTimer = null;
 let estimateAbortController = null;
@@ -125,6 +174,85 @@ function previousPackageTitle(code) {
   return packageData[packageOrder[index - 1]]?.title || '';
 }
 
+function isApartmentProperty() {
+  return ['apartment', 'apartment_new_build', 'apartment_secondary'].includes($('propertyType')?.value);
+}
+
+function getSelectedDesignProject() {
+  return selectedDesignProject === 'none' ? null : DESIGN_PROJECTS[selectedDesignProject] || null;
+}
+
+function getDesignProjectTotal() {
+  const project = getSelectedDesignProject();
+  const area = Math.max(num('areaM2'), 0);
+  return project && area > 0 ? Math.round(project.pricePerM2 * area) : 0;
+}
+
+function renderDesignSummary() {
+  const summary = $('designSummary');
+  const name = $('designProjectName');
+  const total = $('designProjectTotal');
+  const combined = $('combinedTotal');
+  const project = getSelectedDesignProject();
+  const designTotal = getDesignProjectTotal();
+
+  if (!summary) return;
+  summary.classList.toggle('hidden', !project || !isApartmentProperty());
+
+  if (project && isApartmentProperty()) {
+    if (name) name.textContent = project.title;
+    if (total) total.textContent = rub.format(designTotal);
+    if (combined && latestEstimate) combined.textContent = rub.format(latestEstimate.clientTotal + designTotal);
+  }
+}
+
+function renderDesignProjects() {
+  const section = $('designProjectSection');
+  const root = $('designProjects');
+  const noneButton = $('designNoneButton');
+  if (!section || !root || !noneButton) return;
+
+  const apartment = isApartmentProperty();
+  section.classList.toggle('hidden', !apartment);
+
+  if (!apartment) {
+    selectedDesignProject = 'none';
+    renderDesignSummary();
+    return;
+  }
+
+  noneButton.classList.toggle('active', selectedDesignProject === 'none');
+  const area = Math.max(num('areaM2'), 0);
+
+  root.innerHTML = Object.entries(DESIGN_PROJECTS).map(([code, project]) => {
+    const active = selectedDesignProject === code;
+    const total = area > 0 ? Math.round(area * project.pricePerM2) : 0;
+    const highlights = project.highlights.map(item =>
+      '<li><span>✓</span><em>' + escapeHtml(item) + '</em></li>'
+    ).join('');
+    const details = project.includes.map(item => '<li>' + escapeHtml(item) + '</li>').join('');
+
+    return '<article class="design-project-card' + (active ? ' active' : '') + '" data-design-project="' + code + '">' +
+      '<div class="design-project-image-wrap">' +
+        '<img class="design-project-image" src="' + project.image + '" loading="lazy" decoding="async" alt="' + escapeHtml(project.title) + '">' +
+        '<span class="design-project-check">✓</span>' +
+      '</div>' +
+      '<div class="design-project-body">' +
+        '<div class="design-project-badge">Дизайн-проект</div>' +
+        '<h3>' + escapeHtml(project.title) + '</h3>' +
+        '<p>' + escapeHtml(project.description) + '</p>' +
+        '<div class="design-project-price"><strong>от ' + rub.format(project.pricePerM2) + ' / м²</strong>' +
+        '<span>' + (area > 0 ? '≈ ' + rub.format(total) + ' за проект' : 'Укажите площадь квартиры') + '</span></div>' +
+        '<ul class="design-project-highlights">' + highlights + '</ul>' +
+        '<button type="button" class="design-select-button" data-select-design="' + code + '">' + (active ? 'Выбрано' : 'Выбрать') + '</button>' +
+        '<details class="design-project-details"><summary>Полный состав</summary><ul>' + details + '</ul></details>' +
+      '</div>' +
+    '</article>';
+  }).join('');
+
+  renderDesignSummary();
+}
+
 function renderPackages() {
   const root = $('packages');
   root.innerHTML = '';
@@ -133,7 +261,7 @@ function renderPackages() {
     const el = document.createElement('article');
     el.className = 'package package-' + code + (code === selectedPackage ? ' active' : '');
 
-    const isApartment = ['apartment', 'apartment_new_build', 'apartment_secondary'].includes($('propertyType')?.value);
+    const isApartment = isApartmentProperty();
     const area = Math.max(num('areaM2'), 0);
     const minimumTotal = isApartment && area > 0 ? area * pkg.minPerM2 : 0;
     const priceText = isApartment
