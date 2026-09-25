@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Конфигуратор ремонта — Этажи.Ремонт</title>
-  <link rel="stylesheet" href="/styles.css?v=23" />
+  <link rel="stylesheet" href="/styles.css?v=24" />
 </head>
 <body>
   <main class="page configurator-page">
@@ -92,9 +92,28 @@
           <div id="packages" class="packages configurator-packages"></div>
         </section>
 
-        <section class="config-section">
+        <section id="designProjectSection" class="config-section design-project-section">
           <div class="config-section-head">
             <span class="step-number">3</span>
+            <div>
+              <h2>Дизайн-проект квартиры</h2>
+              <p>Выберите формат проекта. Стоимость считается отдельно от ремонта по площади квартиры. Прайс действует с 1 сентября 2026.</p>
+            </div>
+          </div>
+
+          <div class="design-project-toolbar">
+            <button id="designNoneButton" type="button" class="design-none-button active">
+              <strong>Без дизайн-проекта</strong>
+              <span>Только ремонт</span>
+            </button>
+          </div>
+
+          <div id="designProjects" class="design-project-grid"></div>
+        </section>
+
+        <section class="config-section">
+          <div class="config-section-head">
+            <span class="step-number">4</span>
             <div>
               <h2>Дополнительные работы</h2>
               <p>Включайте только то, что действительно требуется на объекте.</p>
@@ -117,7 +136,7 @@
 
         <section class="config-section precision-section">
           <div class="config-section-head">
-            <span class="step-number">4</span>
+            <span class="step-number">5</span>
             <div>
               <h2>Точность расчёта</h2>
               <p>Для быстрого расчёта площади определяются автоматически. Если есть замеры — внесите их вручную.</p>
@@ -196,6 +215,20 @@
               <div id="adjustmentRow" class="estimate-structure-item estimate-structure-wide hidden">
                 <span id="adjustmentLabel">Корректировка</span>
                 <strong id="adjustmentTotal">—</strong>
+              </div>
+            </div>
+
+            <div id="designSummary" class="design-summary hidden">
+              <div class="design-summary-head">
+                <div>
+                  <span>Дизайн-проект</span>
+                  <strong id="designProjectName">—</strong>
+                </div>
+                <strong id="designProjectTotal">—</strong>
+              </div>
+              <div class="design-summary-total">
+                <span>Ремонт + дизайн-проект</span>
+                <strong id="combinedTotal">—</strong>
               </div>
             </div>
 
@@ -282,6 +315,6 @@
     </a>
   </aside>
 
-  <script src="/app.js?v=29"></script>
+  <script src="/app.js?v=30"></script>
 </body>
 </html>
