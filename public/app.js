@@ -91,6 +91,24 @@ async function loadPackages() {
   renderPackages();
 }
 
+const packageOrder = ['minimal', 'standard', 'comfort', 'premium'];
+
+function packageDelta(code, field) {
+  const current = packageData[code]?.[field] || [];
+  const index = packageOrder.indexOf(code);
+  if (index <= 0) return current;
+
+  const previousCode = packageOrder[index - 1];
+  const previous = new Set(packageData[previousCode]?.[field] || []);
+  return current.filter(item => !previous.has(item));
+}
+
+function previousPackageTitle(code) {
+  const index = packageOrder.indexOf(code);
+  if (index <= 0) return '';
+  return packageData[packageOrder[index - 1]]?.title || '';
+}
+
 function renderPackages() {
   const root = $('packages');
   root.innerHTML = '';
@@ -108,12 +126,21 @@ function renderPackages() {
       `<li><span class="pkg-icon">✓</span><span>${item}</span></li>`
     ).join('');
 
-    const roomFinish = (pkg.roomFinish || []).map(item => `<li>${item}</li>`).join('');
-    const bathroomFinish = (pkg.bathroomFinish || []).map(item => `<li>${item}</li>`).join('');
-    const gifts = (pkg.gifts || []).map(item =>
+    const roomFinishItems = packageDelta(code, 'roomFinish');
+    const bathroomFinishItems = packageDelta(code, 'bathroomFinish');
+    const giftItems = packageDelta(code, 'gifts');
+    const noteItems = packageDelta(code, 'notes');
+
+    const roomFinish = roomFinishItems.map(item => `<li>${item}</li>`).join('');
+    const bathroomFinish = bathroomFinishItems.map(item => `<li>${item}</li>`).join('');
+    const gifts = giftItems.map(item =>
       `<li><span class="gift-icon">✦</span><span>${item}</span></li>`
     ).join('');
-    const notes = (pkg.notes || []).map(item => `<li>${item}</li>`).join('');
+    const notes = noteItems.map(item => `<li>${item}</li>`).join('');
+    const previousTitle = previousPackageTitle(code);
+    const inheritanceNote = previousTitle
+      ? `<div class="package-inheritance-note">В пакет уже включено всё из пакета «${escapeHtml(previousTitle)}». Ниже показаны только дополнительные или улучшенные позиции.</div>`
+      : '';
     const selectedImage = code === selectedPackage ? packagePreviewImage(code) : '';
 
     el.innerHTML = `
@@ -137,27 +164,34 @@ function renderPackages() {
 
         <details class="package-details">
           <summary>Состав пакета</summary>
+          ${inheritanceNote}
+          ${roomFinishItems.length || bathroomFinishItems.length ? `
           <div class="package-content-grid">
+            ${roomFinishItems.length ? `
             <div class="package-panel">
               <h4>Комнаты и общие зоны</h4>
               <ul class="detail-list">${roomFinish}</ul>
-            </div>
+            </div>` : ''}
+            ${bathroomFinishItems.length ? `
             <div class="package-panel">
               <h4>Санузел</h4>
               <ul class="detail-list">${bathroomFinish}</ul>
-            </div>
-          </div>
+            </div>` : ''}
+          </div>` : ''}
 
+          ${giftItems.length || noteItems.length ? `
           <div class="package-content-grid package-service-grid">
+            ${giftItems.length ? `
             <div class="package-panel gift-panel">
               <h4>В подарок</h4>
               <ul class="package-list">${gifts}</ul>
-            </div>
+            </div>` : ''}
+            ${noteItems.length ? `
             <div class="package-panel note-panel">
               <h4>Примечание</h4>
               <ul class="detail-list">${notes}</ul>
-            </div>
-          </div>
+            </div>` : ''}
+          </div>` : ''}
         </details>
       </div>
     `;
