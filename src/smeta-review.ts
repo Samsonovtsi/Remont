@@ -2,6 +2,7 @@ import { Pool } from 'pg';
 import { z } from 'zod';
 import { EXTRA_RATES_BY_PACKAGE, SMETA_RATES } from './pricing.js';
 import type { ExtractedRateCandidate, PackageCode, RateGroup } from './smeta-analyzer.js';
+import { initSmetaStore } from './smeta-store.js';
 
 export const rateApprovalSchema = z.object({
   group: z.enum(['smeta', 'extra']),
@@ -39,6 +40,7 @@ function getPool() {
 
 async function initReviewStore() {
   if (initialized) return;
+  await initSmetaStore();
   const db = getPool();
 
   await db.query(`
