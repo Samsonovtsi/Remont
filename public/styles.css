@@ -1349,3 +1349,28 @@ input:focus,select:focus,textarea:focus{
   font-weight:900 !important;
   line-height:1.2;
 }
+
+
+.design-offer-price{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.design-offer-price div:first-child{
+  font-size:18px;
+  font-weight:900;
+}
+.design-offer-price div:last-child{
+  color:#6f6964;
+  font-size:13px;
+  font-weight:700;
+}
+.design-offer-price .design-offer-gift{
+  color:#1f7a49;
+  font-size:14px;
+  font-weight:900;
+}
+.design-summary-head>strong s{
+  color:#8e8a86;
+  text-decoration-thickness:2px;
+}
