@@ -167,6 +167,8 @@ function renderCalculationSource(source){
     plumbingRough:'Черновая сантехника, ₽',
     plumbingClean:'Чистовая сантехника, ₽',
     roughMaterialsFactor:'Коэффициент черновых материалов',
+    cleanMaterialsFactor:'Коэффициент чистовых материалов',
+    roughMaterialsFactor:'Коэффициент черновых материалов',
     cleanMaterialsFactor:'Коэффициент чистовых материалов'
   };
   const smeta = source.smetaRates || {};
