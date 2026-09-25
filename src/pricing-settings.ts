@@ -85,7 +85,7 @@ export async function setManualPricingValue(input: z.infer<typeof manualPricingV
   validateTarget(input.group, input.key, input.packageCode);
   const db = getPool();
 
-  const packageCode = input.group === 'constant' ? null : input.packageCode ?? null;
+  const packageCode = input.group === 'constant' ? '' : input.packageCode ?? '';
 
   const result = await db.query(
     `
