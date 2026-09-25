@@ -142,10 +142,27 @@ function formatRate(value, key=''){
   if(key.toLowerCase().includes('factor')) return num.format(n);
   return rub.format(n);
 }
+function editableRateCell(group, packageCode, key, value){
+  const step=key.toLowerCase().includes('factor') ? '0.001' : '0.01';
+  return '<div class="editable-value">'+
+    '<input type="number" min="0" step="'+step+'" value="'+esc(Number(value || 0))+'" data-calc-input data-group="'+esc(group)+'" data-package="'+esc(packageCode || '')+'" data-key="'+esc(key)+'" />'+
+    '<button type="button" data-save-calc>Сохранить</button>'+
+  '</div>';
+}
+
 function renderCalculationSource(source){
-  $('sourceAgentRate').textContent = pct(source.constants?.agentRewardRate);
-  $('sourceVatRate').textContent = pct(source.constants?.vatRate);
-  $('sourceDeliveryRate').textContent = pct(source.constants?.deliveryRate);
+  $('sourceAgentRateInput').value = String(Number(source.constants?.agentRewardRate || 0) * 100);
+  $('sourceVatRateInput').value = String(Number(source.constants?.vatRate || 0) * 100);
+  $('sourceDeliveryRateInput').value = String(Number(source.constants?.deliveryRate || 0) * 100);
+
+  const packages=source.packagePrices || {};
+  $('packageMinRows').innerHTML=['minimal','standard','comfort','premium'].map(code=>`
+    <tr>
+      <td><strong>${esc(packageLabel(code))}</strong></td>
+      <td>${editableRateCell('package',code,'minPerM2',packages[code]?.minPerM2)}</td>
+      <td><span class="muted">Используется как нижний порог для квартир</span></td>
+    </tr>
+  `).join('');
 
   const bands = source.officialApartmentPriceBands2026 || [];
   $('officialRatesRows').innerHTML = bands.map(row => `
@@ -167,16 +184,13 @@ function renderCalculationSource(source){
     plumbingRough:'Черновая сантехника, ₽',
     plumbingClean:'Чистовая сантехника, ₽',
     roughMaterialsFactor:'Коэффициент черновых материалов',
-    cleanMaterialsFactor:'Коэффициент чистовых материалов',
-    roughMaterialsFactor:'Коэффициент черновых материалов',
     cleanMaterialsFactor:'Коэффициент чистовых материалов'
   };
   const smeta = source.smetaRates || {};
-  const smetaKeys = Object.keys(smetaLabels);
-  $('smetaRatesRows').innerHTML = smetaKeys.map(key => `
+  $('smetaRatesRows').innerHTML = Object.keys(smetaLabels).map(key => `
     <tr>
       <td><strong>${esc(smetaLabels[key])}</strong></td>
-      ${['minimal','standard','comfort','premium'].map(pkg=>`<td>${formatRate(smeta[pkg]?.[key],key)}</td>`).join('')}
+      ${['minimal','standard','comfort','premium'].map(pkg=>'<td>'+editableRateCell('smeta',pkg,key,smeta[pkg]?.[key])+'</td>').join('')}
     </tr>`
   ).join('');
 
@@ -201,7 +215,7 @@ function renderCalculationSource(source){
   $('extraRatesRows').innerHTML = Object.keys(extraLabels).map(key => `
     <tr>
       <td><strong>${esc(extraLabels[key])}</strong></td>
-      ${['minimal','standard','comfort','premium'].map(pkg=>`<td>${formatRate(extras[pkg]?.[key],key)}</td>`).join('')}
+      ${['minimal','standard','comfort','premium'].map(pkg=>'<td>'+editableRateCell('extra',pkg,key,extras[pkg]?.[key])+'</td>').join('')}
     </tr>`
   ).join('');
 
@@ -220,6 +234,42 @@ function renderCalculationSource(source){
     .join('');
 }
 
+async function saveCalculationValue(input){
+  const value=Number(input.value);
+  if(!Number.isFinite(value) || value < 0) throw new Error('Введите корректное значение.');
+
+  await api('/api/v1/admin/calculation-value',{
+    method:'PUT',
+    body:JSON.stringify({
+      group:input.dataset.group,
+      packageCode:input.dataset.package || undefined,
+      key:input.dataset.key,
+      value
+    })
+  });
+  await refreshCalculationSource();
+}
+
+async function saveConstant(key){
+  const id={
+    agentRewardRate:'sourceAgentRateInput',
+    vatRate:'sourceVatRateInput',
+    deliveryRate:'sourceDeliveryRateInput'
+  }[key];
+  const input=$(id);
+  const percentValue=Number(input.value);
+  if(!Number.isFinite(percentValue) || percentValue < 0) throw new Error('Введите корректный процент.');
+
+  await api('/api/v1/admin/calculation-value',{
+    method:'PUT',
+    body:JSON.stringify({
+      group:'constant',
+      key,
+      value:percentValue/100
+    })
+  });
+  await refreshCalculationSource();
+}
 
 const RATE_TARGETS = {
   smeta: {
@@ -516,6 +566,31 @@ $('rateCandidateRows')?.addEventListener('click', async event=>{
   try{
     if(approve) await approveCandidate(Number(approve.dataset.candidateApprove));
     if(reject) await rejectCandidate(Number(reject.dataset.candidateReject));
+  }catch(err){
+    $('status').textContent=err.message;
+    $('status').className='status error';
+  }
+});
+
+document.querySelectorAll('.admin-tab').forEach(button=>{
+  button.addEventListener('click',()=>{
+    const target=button.dataset.adminTab;
+    document.querySelectorAll('.admin-tab').forEach(item=>item.classList.toggle('active',item===button));
+    document.querySelectorAll('.admin-tab-panel').forEach(panel=>panel.classList.toggle('active',panel.dataset.adminTabPanel===target));
+  });
+});
+
+document.addEventListener('click',async event=>{
+  const saveButton=event.target.closest('button[data-save-calc]');
+  const constantButton=event.target.closest('button[data-save-constant]');
+  try{
+    if(saveButton){
+      const input=saveButton.closest('.editable-value')?.querySelector('[data-calc-input]');
+      if(input) await saveCalculationValue(input);
+    }
+    if(constantButton){
+      await saveConstant(constantButton.dataset.saveConstant);
+    }
   }catch(err){
     $('status').textContent=err.message;
     $('status').className='status error';
