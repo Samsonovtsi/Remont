@@ -251,6 +251,69 @@ $('propertyType').addEventListener('change', () => {
   renderPackages();
 });
 
+function setupCountChoice(groupId, hiddenId, otherId, otherMin) {
+  const group = $(groupId);
+  const hidden = $(hiddenId);
+  const other = $(otherId);
+  if (!group || !hidden || !other) return;
+
+  const setValue = (value, fromOther = false) => {
+    if (value === 'other') {
+      other.classList.remove('hidden');
+      const numeric = Math.max(otherMin, Number(other.value || otherMin));
+      other.value = String(numeric);
+      hidden.value = String(numeric);
+    } else {
+      other.classList.add('hidden');
+      hidden.value = String(value);
+    }
+
+    group.querySelectorAll('button[data-value]').forEach(button => {
+      const active = fromOther
+        ? button.dataset.value === 'other'
+        : button.dataset.value === String(value);
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-pressed', String(active));
+    });
+
+    hidden.dispatchEvent(new Event('change', { bubbles: true }));
+  };
+
+  group.addEventListener('click', event => {
+    const button = event.target.closest('button[data-value]');
+    if (!button) return;
+    setValue(button.dataset.value);
+  });
+
+  other.addEventListener('input', () => {
+    const numeric = Math.max(otherMin, Number(other.value || otherMin));
+    hidden.value = String(numeric);
+    group.querySelectorAll('button[data-value]').forEach(button => {
+      const active = button.dataset.value === 'other';
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-pressed', String(active));
+    });
+    hidden.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+}
+
+setupCountChoice('roomsChoices', 'rooms', 'roomsOther', 5);
+setupCountChoice('bathroomsChoices', 'bathrooms', 'bathroomsOther', 0);
+
+function changeDoors(delta) {
+  const field = $('doors');
+  if (!field) return;
+  const min = Number(field.min || 0);
+  const max = Number(field.max || 100);
+  const next = Math.min(max, Math.max(min, Number(field.value || 0) + delta));
+  field.value = String(next);
+  field.dispatchEvent(new Event('input', { bubbles: true }));
+  field.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+$('doorsMinus')?.addEventListener('click', () => changeDoors(-1));
+$('doorsPlus')?.addEventListener('click', () => changeDoors(1));
+
 function num(id) {
   return Number($(id).value || 0);
 }
