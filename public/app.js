@@ -557,3 +557,36 @@ trackEvent('page_view', 'calculator');
     $('formError').classList.remove('hidden');
   }
 })();
+
+
+const floatingPhoneButton = $('floatingPhoneButton');
+const floatingPhonePopover = $('floatingPhonePopover');
+const floatingContacts = $('floatingContacts');
+
+if (floatingPhoneButton && floatingPhonePopover && floatingContacts) {
+  floatingPhoneButton.addEventListener('click', (event) => {
+    event.stopPropagation();
+    const isOpen = floatingPhonePopover.classList.toggle('is-open');
+    floatingPhoneButton.setAttribute('aria-expanded', String(isOpen));
+    trackEvent('contact_click', 'phone_reveal');
+  });
+
+  document.addEventListener('click', (event) => {
+    if (!floatingContacts.contains(event.target)) {
+      floatingPhonePopover.classList.remove('is-open');
+      floatingPhoneButton.setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      floatingPhonePopover.classList.remove('is-open');
+      floatingPhoneButton.setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  const revealedPhoneLink = floatingPhonePopover.querySelector('a[href^="tel:"]');
+  if (revealedPhoneLink) {
+    revealedPhoneLink.addEventListener('click', () => trackEvent('contact_click', 'phone'));
+  }
+}
