@@ -233,7 +233,7 @@ function payload() {
     bathrooms: num('bathrooms'),
     rooms: num('rooms'),
     doors: num('doors'),
-    doorways: num('doorways'),
+    doorways: exact ? num('doorways') : 0,
     needsFullElectrical: $('needsFullElectrical').checked,
     needsFullPlumbing: $('needsFullPlumbing').checked,
     needsDemolition: $('needsDemolition').checked,
