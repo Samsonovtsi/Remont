@@ -133,12 +133,18 @@ function renderPackages() {
     el.className = 'package package-' + code + (code === selectedPackage ? ' active' : '');
 
     const isApartment = $('propertyType')?.value === 'apartment';
+    const area = Math.max(num('areaM2'), 0);
+    const minimumTotal = isApartment && area > 0 ? area * pkg.minPerM2 : 0;
     const priceText = isApartment
       ? `от ${rub.format(pkg.minPerM2)} / м²`
-      : 'Индивидуальный расчёт по смете';
+      : 'Индивидуальный расчёт';
+    const totalHint = isApartment && minimumTotal > 0
+      ? `≈ от ${rub.format(minimumTotal)} за объект`
+      : 'Стоимость рассчитывается по смете';
 
-    const included = (pkg.included || []).map(item =>
-      `<li><span class="pkg-icon">✓</span><span>${item}</span></li>`
+    const includedItems = (pkg.included || []).slice(0, 4);
+    const included = includedItems.map(item =>
+      `<li><span class="pkg-icon">✓</span><span>${escapeHtml(item)}</span></li>`
     ).join('');
 
     const roomFinishItems = packageDelta(code, 'roomFinish');
@@ -146,68 +152,80 @@ function renderPackages() {
     const giftItems = packageDelta(code, 'gifts');
     const noteItems = packageDelta(code, 'notes');
 
-    const roomFinish = roomFinishItems.map(item => `<li>${item}</li>`).join('');
-    const bathroomFinish = bathroomFinishItems.map(item => `<li>${item}</li>`).join('');
+    const roomFinish = roomFinishItems.map(item => `<li>${escapeHtml(item)}</li>`).join('');
+    const bathroomFinish = bathroomFinishItems.map(item => `<li>${escapeHtml(item)}</li>`).join('');
     const gifts = giftItems.map(item =>
-      `<li><span class="gift-icon">✦</span><span>${item}</span></li>`
+      `<li><span class="gift-icon">✦</span><span>${escapeHtml(item)}</span></li>`
     ).join('');
-    const notes = noteItems.map(item => `<li>${item}</li>`).join('');
+    const notes = noteItems.map(item => `<li>${escapeHtml(item)}</li>`).join('');
+
     const previousTitle = previousPackageTitle(code);
     const inheritanceNote = previousTitle
-      ? `<div class="package-inheritance-note">В пакет уже включено всё из пакета «${escapeHtml(previousTitle)}». Ниже показаны только дополнительные или улучшенные позиции.</div>`
-      : '';
+      ? `<div class="package-inheritance-note">Уже включено всё из пакета «${escapeHtml(previousTitle)}». Ниже — только дополнительные или улучшенные позиции.</div>`
+      : '<div class="package-inheritance-note base-note">Базовый состав пакета показан полностью.</div>';
+
     const selectedImage = packagePreviewImage(code);
+    const popular = code === 'comfort' ? '<span class="package-popular">Чаще выбирают</span>' : '';
 
     el.innerHTML = `
       <div class="package-visual">
-        ${selectedImage ? `<img class="package-card-image" src="${selectedImage}" loading="eager" decoding="async" fetchpriority="high" data-fallback="${packageFullImage(code)}" onerror="if(this.dataset.fallback){const f=this.dataset.fallback;this.dataset.fallback='';this.src=f}else{this.style.display='none'}" alt="Пример ремонта — пакет ${escapeHtml(pkg.title)}">` : ''}
-        <div class="package-badge">Пакет ремонта</div>
-        <div class="package-top">
-          <div>
-            <h3>${pkg.title}</h3>
-            <p class="package-description">${pkg.description}</p>
+        <div class="package-media">
+          ${selectedImage ? `<img class="package-card-image" src="${selectedImage}" loading="eager" decoding="async" data-fallback="${packageFullImage(code)}" onerror="if(this.dataset.fallback){const f=this.dataset.fallback;this.dataset.fallback='';this.src=f}else{this.style.display='none'}" alt="Пример ремонта — пакет ${escapeHtml(pkg.title)}">` : ''}
+          ${popular}
+          <span class="package-selected-mark" aria-hidden="true">✓</span>
+        </div>
+
+        <div class="package-body">
+          <div class="package-top">
+            <div>
+              <div class="package-badge">Пакет ремонта</div>
+              <h3>${escapeHtml(pkg.title)}</h3>
+            </div>
+            <div class="radio-dot" aria-hidden="true"></div>
           </div>
-          <div class="radio-dot" aria-hidden="true"></div>
+
+          <p class="package-description">${escapeHtml(pkg.description)}</p>
+
+          <div class="package-price-block">
+            <strong class="package-price">${priceText}</strong>
+            <span class="package-total-hint">${totalHint}</span>
+          </div>
+
+          <ul class="package-list package-list-inline package-quick-list">${included}</ul>
+
+          <details class="package-details">
+            <summary>Что входит и чем отличается</summary>
+            ${inheritanceNote}
+
+            ${roomFinishItems.length || bathroomFinishItems.length ? `
+            <div class="package-content-grid">
+              ${roomFinishItems.length ? `
+              <div class="package-panel">
+                <h4>Комнаты и общие зоны</h4>
+                <ul class="detail-list">${roomFinish}</ul>
+              </div>` : ''}
+              ${bathroomFinishItems.length ? `
+              <div class="package-panel">
+                <h4>Санузел</h4>
+                <ul class="detail-list">${bathroomFinish}</ul>
+              </div>` : ''}
+            </div>` : ''}
+
+            ${giftItems.length || noteItems.length ? `
+            <div class="package-content-grid package-service-grid">
+              ${giftItems.length ? `
+              <div class="package-panel gift-panel">
+                <h4>В подарок</h4>
+                <ul class="package-list">${gifts}</ul>
+              </div>` : ''}
+              ${noteItems.length ? `
+              <div class="package-panel note-panel">
+                <h4>Примечание</h4>
+                <ul class="detail-list">${notes}</ul>
+              </div>` : ''}
+            </div>` : ''}
+          </details>
         </div>
-
-        <div class="package-price">${priceText}</div>
-
-        <div class="package-panel package-summary">
-          <h4>В стоимость включено</h4>
-          <ul class="package-list package-list-inline">${included}</ul>
-        </div>
-
-        <details class="package-details">
-          <summary>Состав пакета</summary>
-          ${inheritanceNote}
-          ${roomFinishItems.length || bathroomFinishItems.length ? `
-          <div class="package-content-grid">
-            ${roomFinishItems.length ? `
-            <div class="package-panel">
-              <h4>Комнаты и общие зоны</h4>
-              <ul class="detail-list">${roomFinish}</ul>
-            </div>` : ''}
-            ${bathroomFinishItems.length ? `
-            <div class="package-panel">
-              <h4>Санузел</h4>
-              <ul class="detail-list">${bathroomFinish}</ul>
-            </div>` : ''}
-          </div>` : ''}
-
-          ${giftItems.length || noteItems.length ? `
-          <div class="package-content-grid package-service-grid">
-            ${giftItems.length ? `
-            <div class="package-panel gift-panel">
-              <h4>В подарок</h4>
-              <ul class="package-list">${gifts}</ul>
-            </div>` : ''}
-            ${noteItems.length ? `
-            <div class="package-panel note-panel">
-              <h4>Примечание</h4>
-              <ul class="detail-list">${notes}</ul>
-            </div>` : ''}
-          </div>` : ''}
-        </details>
       </div>
     `;
 
