@@ -1,6 +1,6 @@
 export type PackageCode = 'minimal' | 'standard' | 'comfort' | 'premium';
-export type PropertyType = 'apartment' | 'house' | 'commercial';
-export type Condition = 'new_build' | 'secondary_good' | 'secondary_worn' | 'shell';
+export type PropertyType = 'apartment' | 'apartment_new_build' | 'apartment_secondary' | 'house' | 'commercial';
+export type Condition = 'shell' | 'white_box' | 'developer_finish' | 'secondary_good' | 'secondary_cosmetic' | 'secondary_worn';
 
 export interface PackagePrice {
   title: string;
@@ -251,10 +251,12 @@ export function setPricingConstant(
 // Коэффициенты состояния применяются только к базовым отделочным работам.
  // Это настраиваемая модель оценки дополнительной трудоёмкости, а не ставка из конкретной сметы.
 export const CONDITION_FACTOR: Record<Condition, number> = {
-  new_build: 1.00,
-  secondary_good: 1.04,
-  secondary_worn: 1.12,
-  shell: 1.08
+  shell: 1.08,
+  white_box: 1.00,
+  developer_finish: 0.90,
+  secondary_good: 1.00,
+  secondary_cosmetic: 1.06,
+  secondary_worn: 1.12
 };
 
 export function setConditionFactor(condition: Condition, value: number) {
@@ -266,6 +268,8 @@ export function setConditionFactor(condition: Condition, value: number) {
 
 export const PROPERTY_FACTOR: Record<PropertyType, number> = {
   apartment: 1.00,
+  apartment_new_build: 1.00,
+  apartment_secondary: 1.00,
   house: 1.00,
   commercial: 1.00
 };
