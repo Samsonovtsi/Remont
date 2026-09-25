@@ -284,10 +284,10 @@ function renderDesignProjects() {
         : 'Улучшение проекта';
     const priceHtml = project.included
       ? '<strong class="design-included-price"><s>' + rub.format(project.pricePerM2) + ' / м²</s></strong><span class="design-gift-label">В подарок</span>'
-      : '<strong>+' + rub.format(project.upgradePricePerM2) + ' / м²</strong>' +
+      : '<strong>' + rub.format(project.pricePerM2) + ' / м²</strong>' +
         '<span>' + (area > 0
-          ? 'Полный проект ' + rub.format(retailTotal)
-          : 'Полная стоимость проекта ' + rub.format(project.pricePerM2) + ' / м²') + '</span>';
+          ? 'Общая стоимость пакета ' + rub.format(retailTotal)
+          : 'Общая стоимость пакета рассчитывается по площади') + '</span>';
     const cta = project.included
       ? '<div class="design-included-button">Входит в подарок</div>'
       : '<button type="button" class="design-select-button" data-select-design="' + code + '">' +
