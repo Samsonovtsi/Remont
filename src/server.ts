@@ -14,6 +14,11 @@ import {
   listFeedback,
   updateFeedbackResolution
 } from './feedback.js';
+import {
+  analyticsEventSchema,
+  getAnalyticsSummary,
+  trackAnalyticsEvent
+} from './analytics.js';
 
 const app = Fastify({ logger: true });
 
@@ -93,6 +98,42 @@ app.post('/api/v1/feedback', async (request, reply) => {
   }
 });
 
+
+
+app.post('/api/v1/analytics', async (request, reply) => {
+  try {
+    const event = analyticsEventSchema.parse(request.body);
+    await trackAnalyticsEvent(event);
+    return reply.code(204).send();
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return reply.code(400).send({
+        error: 'VALIDATION_ERROR',
+        details: error.flatten()
+      });
+    }
+
+    request.log.error(error);
+    return reply.code(503).send({ error: 'ANALYTICS_NOT_AVAILABLE' });
+  }
+});
+
+app.get('/api/v1/analytics/summary', async (request, reply) => {
+  const auth = requireFeedbackAdmin(request as any);
+  if (!auth.ok) return reply.code(auth.code).send({ error: auth.error });
+
+  try {
+    const query = request.query as { days?: string };
+    const summary = await getAnalyticsSummary(Number(query.days ?? 30));
+    return summary;
+  } catch (error) {
+    request.log.error(error);
+    return reply.code(503).send({
+      error: 'ANALYTICS_NOT_AVAILABLE',
+      message: error instanceof Error ? error.message : 'Аналитика недоступна'
+    });
+  }
+});
 
 app.get('/api/v1/feedback', async (request, reply) => {
   const auth = requireFeedbackAdmin(request as any);
