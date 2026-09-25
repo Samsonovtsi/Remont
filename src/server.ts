@@ -5,7 +5,16 @@ import { ZodError } from 'zod';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { calculateEstimate } from './calculator.js';
-import { PACKAGE_PRICES, AGENT_REWARD_RATE } from './pricing.js';
+import {
+  PACKAGE_PRICES,
+  AGENT_REWARD_RATE,
+  VAT_RATE,
+  DELIVERY_RATE,
+  SMETA_RATES,
+  EXTRA_RATES_BY_PACKAGE,
+  OFFICIAL_APARTMENT_PRICE_BANDS_2026,
+  COMMERCIAL_TILE_RATES
+} from './pricing.js';
 import { estimateRequestSchema } from './schema.js';
 import {
   appendFeedback,
@@ -19,8 +28,15 @@ import {
   getAnalyticsSummary,
   trackAnalyticsEvent
 } from './analytics.js';
+import {
+  deleteSmetaDocument,
+  getSmetaDocument,
+  listSmetaDocuments,
+  saveSmetaDocument,
+  smetaUploadSchema
+} from './smeta-store.js';
 
-const app = Fastify({ logger: true });
+const app = Fastify({ logger: true, bodyLimit: 22 * 1024 * 1024 });
 
 await app.register(cors, {
   origin: process.env.CORS_ORIGIN ?? '*'
@@ -58,6 +74,110 @@ app.get('/api/v1/packages', async () => ({
   agentRewardRate: AGENT_REWARD_RATE,
   packages: PACKAGE_PRICES
 }));
+
+
+app.get('/api/v1/admin/calculation-source', async (request, reply) => {
+  const auth = requireFeedbackAdmin(request as any);
+  if (!auth.ok) return reply.code(auth.code).send({ error: auth.error });
+
+  return {
+    updatedAt: '2026-09-25',
+    packagePrices: PACKAGE_PRICES,
+    officialApartmentPriceBands2026: OFFICIAL_APARTMENT_PRICE_BANDS_2026,
+    smetaRates: SMETA_RATES,
+    extraRatesByPackage: EXTRA_RATES_BY_PACKAGE,
+    commercialTileRates: COMMERCIAL_TILE_RATES,
+    constants: {
+      agentRewardRate: AGENT_REWARD_RATE,
+      vatRate: VAT_RATE,
+      deliveryRate: DELIVERY_RATE
+    },
+    calculationNotes: [
+      'Быстрый режим оценивает геометрию автоматически по площади, числу жилых комнат и санузлов.',
+      'Количество жилых комнат в интерфейсе указывается без кухни; кухня уже входит в общую площадь объекта.',
+      'Точный режим использует фактически введённые площади и количества.',
+      'Для квартир действует минимальная стоимость выбранного пакета за м².',
+      'Вознаграждение риелтора считается как 5% только от стоимости работ.'
+    ]
+  };
+});
+
+app.get('/api/v1/admin/smetas', async (request, reply) => {
+  const auth = requireFeedbackAdmin(request as any);
+  if (!auth.ok) return reply.code(auth.code).send({ error: auth.error });
+
+  try {
+    return { rows: await listSmetaDocuments() };
+  } catch (error) {
+    request.log.error(error);
+    return reply.code(503).send({
+      error: 'SMETA_STORE_NOT_AVAILABLE',
+      message: error instanceof Error ? error.message : 'Хранилище смет недоступно'
+    });
+  }
+});
+
+app.post('/api/v1/admin/smetas', async (request, reply) => {
+  const auth = requireFeedbackAdmin(request as any);
+  if (!auth.ok) return reply.code(auth.code).send({ error: auth.error });
+
+  try {
+    const input = smetaUploadSchema.parse(request.body);
+    const row = await saveSmetaDocument(input);
+    return reply.code(201).send({ row });
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return reply.code(400).send({
+        error: 'VALIDATION_ERROR',
+        details: error.flatten()
+      });
+    }
+
+    request.log.error(error);
+    return reply.code(503).send({
+      error: 'SMETA_UPLOAD_FAILED',
+      message: error instanceof Error ? error.message : 'Не удалось сохранить смету'
+    });
+  }
+});
+
+app.get('/api/v1/admin/smetas/:id/download', async (request, reply) => {
+  const auth = requireFeedbackAdmin(request as any);
+  if (!auth.ok) return reply.code(auth.code).send({ error: auth.error });
+
+  try {
+    const id = Number((request.params as { id: string }).id);
+    if (!Number.isInteger(id) || id <= 0) return reply.code(400).send({ error: 'INVALID_ID' });
+
+    const row = await getSmetaDocument(id);
+    if (!row) return reply.code(404).send({ error: 'NOT_FOUND' });
+
+    const encodedName = encodeURIComponent(String(row.original_name));
+    reply.header('Content-Type', String(row.mime_type || 'application/octet-stream'));
+    reply.header('Content-Length', String(row.file_size));
+    reply.header('Content-Disposition', `attachment; filename*=UTF-8''${encodedName}`);
+    return reply.send(row.content);
+  } catch (error) {
+    request.log.error(error);
+    return reply.code(503).send({ error: 'SMETA_DOWNLOAD_FAILED' });
+  }
+});
+
+app.delete('/api/v1/admin/smetas/:id', async (request, reply) => {
+  const auth = requireFeedbackAdmin(request as any);
+  if (!auth.ok) return reply.code(auth.code).send({ error: auth.error });
+
+  try {
+    const id = Number((request.params as { id: string }).id);
+    if (!Number.isInteger(id) || id <= 0) return reply.code(400).send({ error: 'INVALID_ID' });
+    const deleted = await deleteSmetaDocument(id);
+    if (!deleted) return reply.code(404).send({ error: 'NOT_FOUND' });
+    return { ok: true };
+  } catch (error) {
+    request.log.error(error);
+    return reply.code(503).send({ error: 'SMETA_DELETE_FAILED' });
+  }
+});
 
 app.post('/api/v1/estimate', async (request, reply) => {
   try {
