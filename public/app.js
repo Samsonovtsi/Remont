@@ -236,18 +236,34 @@ function renderAgentReward(result = latestEstimate) {
 function renderDesignSummary() {
   const summary = $('designSummary');
   const name = $('designProjectName');
+  const pricePerM2 = $('designProjectPricePerM2');
   const total = $('designProjectTotal');
   const combined = $('combinedTotal');
   const project = getSelectedDesignProject();
-  const designTotal = getDesignProjectTotal();
+  const designUpgradeTotal = getDesignProjectTotal();
+  const designRetailTotal = getDesignProjectRetailTotal();
 
   if (!summary) return;
   summary.classList.toggle('hidden', !project || !isApartmentProperty());
 
   if (project && isApartmentProperty()) {
-    if (name) name.textContent = project.included ? project.title + ' — включён' : project.title;
-    if (total) total.textContent = project.included ? 'Без доплаты' : '+' + rub.format(designTotal);
-    if (combined && latestEstimate) combined.textContent = rub.format(latestEstimate.clientTotal + designTotal);
+    if (name) name.textContent = project.included ? project.title + ' — в подарок' : project.title;
+
+    if (pricePerM2) {
+      pricePerM2.innerHTML = project.included
+        ? '<s>' + rub.format(project.pricePerM2) + ' / м²</s>'
+        : rub.format(project.pricePerM2) + ' / м²';
+    }
+
+    if (total) {
+      total.textContent = project.included
+        ? 'В подарок'
+        : rub.format(designRetailTotal);
+    }
+
+    if (combined && latestEstimate) {
+      combined.textContent = rub.format(latestEstimate.clientTotal + designUpgradeTotal);
+    }
   }
 
   renderAgentReward();
@@ -753,8 +769,9 @@ function generateClientOffer() {
   const offerComment = escapeHtml($('offerComment').value.trim());
   const imageSrc = packageFullImage(selectedPackage);
   const designProject = getSelectedDesignProject();
-  const designTotal = getDesignProjectTotal();
-  const combinedTotal = latestEstimate.clientTotal + designTotal;
+  const designUpgradeTotal = getDesignProjectTotal();
+  const designRetailTotal = getDesignProjectRetailTotal();
+  const combinedTotal = latestEstimate.clientTotal + designUpgradeTotal;
 
   const estimateRows = (latestEstimate.lines || []).map(line => `
     <tr>
@@ -768,7 +785,7 @@ function generateClientOffer() {
     clientTotal: latestEstimate.clientTotal,
     pricePerM2: latestEstimate.pricePerM2Final,
     designProject: selectedDesignProject,
-    designProjectTotal: designTotal
+    designProjectTotal: designUpgradeTotal
   });
 
   const popup = window.open('', '_blank');
@@ -873,9 +890,11 @@ function generateClientOffer() {
         <div>
           <h2>${escapeHtml(designProject.title)}</h2>
           <p>${escapeHtml(designProject.description)}</p>
-          <div class="design-offer-price">${designProject.included
-            ? 'Включён в стоимость ремонта'
-            : 'Доплата +' + rub.format(designProject.upgradePricePerM2) + ' / м² · ' + rub.format(designTotal)}</div>
+          <div class="design-offer-price">
+            ${designProject.included
+              ? '<div><s>' + rub.format(designProject.pricePerM2) + ' / м²</s></div><div class="design-offer-gift">В подарок</div>'
+              : '<div>' + rub.format(designProject.pricePerM2) + ' / м²</div><div>Общая стоимость проекта: ' + rub.format(designRetailTotal) + '</div>'}
+          </div>
         </div>
       </div>
       <div class="combined-offer">
