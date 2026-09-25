@@ -286,22 +286,6 @@ function calculateSmetaEstimate(input: EstimateRequest): EstimateResult {
   const agentRewardBase = roundRub(worksTotal);
   const agentReward = roundRub(agentRewardBase * AGENT_REWARD_RATE);
 
-  const conditionPercent = Math.round((conditionFactor - 1) * 100);
-  const objectNote =
-    conditionPercent !== 0
-      ? ' Состояние объекта изменяет стоимость базовых отделочных работ на ' +
-        (conditionPercent > 0 ? '+' : '') +
-        conditionPercent +
-        '%. Для квартир итог после снижения всё равно не может быть ниже минимальной стоимости пакета.'
-      : '';
-
-  const minimumNote =
-    minimumAdjustment > 0
-      ? ' Для квартиры применён нижний порог выбранного пакета: итоговая цена не может быть ниже ' +
-        PACKAGE_PRICES[input.package].minPerM2.toLocaleString('ru-RU') +
-        ' ₽/м². Отключение дополнительных опций не уменьшает базовую стоимость пакета.'
-      : '';
-
   return {
     currency: 'RUB',
     areaM2: input.areaM2,
@@ -339,8 +323,8 @@ function calculateSmetaEstimate(input: EstimateRequest): EstimateResult {
     },
     disclaimer:
       input.calculationMode === 'exact'
-        ? 'Смета рассчитана по введённым замерам и тарифам из предоставленных смет сентября 2026. Доставка = 10% от материалов, НДС = 5%, вознаграждение риелтора = 5% только от стоимости работ.' + objectNote + minimumNote
-        : 'Быстрый расчёт строит предполагаемую смету по фактическим ставкам и структуре загруженных смет; объёмы работ оцениваются автоматически по площади и параметрам объекта. Для договорной стоимости используйте режим «Точная по замерам». Вознаграждение риелтора = 5% только от стоимости работ.' + objectNote + minimumNote
+        ? 'Смета рассчитана по введённым замерам и тарифам из предоставленных смет сентября 2026.'
+        : 'Быстрый расчёт строит предполагаемую смету по фактическим ставкам и структуре загруженных смет; объёмы работ оцениваются автоматически по площади и параметрам объекта. Для договорной стоимости используйте режим «Точная по замерам».'
   };
 }
 
