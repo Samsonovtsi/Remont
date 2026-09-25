@@ -181,19 +181,22 @@ export async function approveRateCandidate(
   validateTarget(input.group, input.key);
   const db = getPool();
   const client = await db.connect();
+  let documentId: number | null = null;
 
-  await client.query('BEGIN');
   try {
+    await client.query('BEGIN');
+
     const source = await client.query(
       'SELECT id, document_id FROM smeta_rate_candidates WHERE id = $1 FOR UPDATE',
       [id]
     );
+
     if (!source.rows[0]) {
       await client.query('ROLLBACK');
       return null;
     }
 
-    const documentId = Number(source.rows[0].document_id);
+    documentId = Number(source.rows[0].document_id);
 
     await client.query(
       `
@@ -226,14 +229,15 @@ export async function approveRateCandidate(
     );
 
     await client.query('COMMIT');
-    client.release();
-    await refreshPricingOverrides(true);
-    return { id, ...input };
   } catch (error) {
-    await client.query('ROLLBACK');
-    client.release();
+    await client.query('ROLLBACK').catch(() => {});
     throw error;
+  } finally {
+    client.release();
   }
+
+  await refreshPricingOverrides(true);
+  return { id, ...input };
 }
 
 export async function rejectRateCandidate(id: number) {
