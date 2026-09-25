@@ -419,6 +419,7 @@ function updateConditionOptions() {
 $('propertyType').addEventListener('change', () => {
   updateConditionOptions();
   renderPackages();
+  renderDesignProjects();
   scheduleAutoCalculation();
 });
 
@@ -509,6 +510,8 @@ function payload() {
     needsCeiling: $('needsCeiling').checked,
     hasBalcony: $('hasBalcony').checked,
     warmFloorM2: num('warmFloorM2'),
+    designProject: selectedDesignProject,
+    designProjectTotal: getDesignProjectTotal(),
     ...(exact ? {
       roughWallAreaM2: num('roughWallAreaM2'),
       cleanWallAreaM2: num('cleanWallAreaM2'),
@@ -578,6 +581,7 @@ function renderResult(result) {
   }
 
   if (note) note.textContent = result.disclaimer;
+  renderDesignSummary();
 }
 
 
@@ -687,6 +691,9 @@ function generateClientOffer() {
 
   const offerComment = escapeHtml($('offerComment').value.trim());
   const imageSrc = packageFullImage(selectedPackage);
+  const designProject = getSelectedDesignProject();
+  const designTotal = getDesignProjectTotal();
+  const combinedTotal = latestEstimate.clientTotal + designTotal;
 
   const estimateRows = (latestEstimate.lines || []).map(line => `
     <tr>
@@ -698,7 +705,9 @@ function generateClientOffer() {
   trackEvent('offer_generate', selectedPackage, {
     areaM2: latestEstimate.areaM2,
     clientTotal: latestEstimate.clientTotal,
-    pricePerM2: latestEstimate.pricePerM2Final
+    pricePerM2: latestEstimate.pricePerM2Final,
+    designProject: selectedDesignProject,
+    designProjectTotal: designTotal
   });
 
   const popup = window.open('', '_blank');
@@ -738,6 +747,15 @@ function generateClientOffer() {
   td{padding:9px 0;border-bottom:1px solid #eee;font-size:13px}
   td:last-child{text-align:right;font-weight:700;white-space:nowrap}
   .comment{margin-top:18px;padding:15px;background:#faf8f5;border-radius:14px;white-space:pre-wrap}
+  .design-offer{margin-top:18px;padding:18px;border:1px solid #e7e0da;border-radius:16px;background:#fffaf8}
+  .design-offer-head{display:grid;grid-template-columns:140px 1fr;gap:16px;align-items:center}
+  .design-offer img{width:140px;height:92px;object-fit:cover;border-radius:12px;background:#f3f0ec}
+  .design-offer h2{margin:0 0 6px;font-size:19px}
+  .design-offer p{margin:0;color:#6f6964;font-size:12px;line-height:1.4}
+  .design-offer-price{margin-top:7px;font-size:18px;font-weight:800}
+  .combined-offer{display:flex;justify-content:space-between;gap:14px;align-items:center;margin-top:14px;padding:16px 18px;background:#181818;color:#fff;border-radius:14px}
+  .combined-offer span{font-size:12px;color:#ddd}
+  .combined-offer strong{font-size:24px}
   .disclaimer{margin-top:18px;font-size:11px;line-height:1.45;color:#777}
   .actions{max-width:980px;margin:16px auto;display:flex;gap:10px}
   button{border:0;border-radius:12px;padding:13px 18px;font-weight:700;cursor:pointer}
@@ -786,6 +804,23 @@ function generateClientOffer() {
     <h2>Состав расчёта</h2>
     <table>${estimateRows}</table>
   </section>
+
+  ${designProject ? `
+    <section class="design-offer">
+      <div class="design-offer-head">
+        <img src="${designProject.image}" alt="${escapeHtml(designProject.title)}">
+        <div>
+          <h2>${escapeHtml(designProject.title)}</h2>
+          <p>${escapeHtml(designProject.description)}</p>
+          <div class="design-offer-price">${rub.format(designProject.pricePerM2)} / м² · ${rub.format(designTotal)}</div>
+        </div>
+      </div>
+      <div class="combined-offer">
+        <span>Ремонт + дизайн-проект</span>
+        <strong>${rub.format(combinedTotal)}</strong>
+      </div>
+    </section>
+  ` : ''}
 
   ${offerComment ? `<div class="comment"><strong>Комментарий:</strong><br>${offerComment}</div>` : ''}
 
@@ -858,7 +893,10 @@ $('calculator').addEventListener('submit', async (event) => {
 $('calculator').querySelectorAll('input, select').forEach((field) => {
   field.addEventListener('input', () => {
     scheduleAutoCalculation();
-    if (field.id === 'areaM2') renderPackages();
+    if (field.id === 'areaM2') {
+      renderPackages();
+      renderDesignProjects();
+    }
   });
   field.addEventListener('change', () => {
     scheduleAutoCalculation();
@@ -868,6 +906,29 @@ $('calculator').querySelectorAll('input, select').forEach((field) => {
       package: selectedPackage
     });
   });
+});
+
+$('designProjects')?.addEventListener('click', (event) => {
+  if (event.target.closest('details')) return;
+  const button = event.target.closest('[data-select-design]');
+  const card = event.target.closest('[data-design-project]');
+  const code = button?.dataset.selectDesign || card?.dataset.designProject;
+  if (!code || !DESIGN_PROJECTS[code]) return;
+
+  selectedDesignProject = code;
+  trackEvent('option_change', 'design_project', {
+    value: code,
+    title: DESIGN_PROJECTS[code].title,
+    areaM2: num('areaM2'),
+    total: getDesignProjectTotal()
+  });
+  renderDesignProjects();
+});
+
+$('designNoneButton')?.addEventListener('click', () => {
+  selectedDesignProject = 'none';
+  trackEvent('option_change', 'design_project', { value: 'none' });
+  renderDesignProjects();
 });
 
 $('generateOfferButton').addEventListener('click', generateClientOffer);
@@ -890,6 +951,7 @@ trackEvent('page_view', 'calculator');
 (async () => {
   try {
     await loadPackages();
+    renderDesignProjects();
     await calculateAndRender();
   } catch {
     $('formError').textContent = 'Не удалось загрузить калькулятор. Проверьте backend.';
