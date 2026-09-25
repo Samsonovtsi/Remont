@@ -46,6 +46,12 @@ import {
   rejectRateCandidate,
   replaceRateCandidates
 } from './smeta-review.js';
+import {
+  applyManualPricingValues,
+  listManualPricingValues,
+  manualPricingValueSchema,
+  setManualPricingValue
+} from './pricing-settings.js';
 
 const app = Fastify({ logger: true, bodyLimit: 22 * 1024 * 1024 });
 
@@ -93,6 +99,7 @@ app.get('/api/v1/admin/calculation-source', async (request, reply) => {
 
   try {
     await refreshPricingOverrides();
+    await applyManualPricingValues();
   } catch (error) {
     request.log.warn(error);
   }
@@ -110,6 +117,7 @@ app.get('/api/v1/admin/calculation-source', async (request, reply) => {
       deliveryRate: DELIVERY_RATE
     },
     activeOverrides: await listPricingOverrides().catch(() => []),
+    manualValues: await listManualPricingValues().catch(() => []),
     calculationNotes: [
       'Быстрый режим оценивает геометрию автоматически по площади, числу жилых комнат и санузлов.',
       'Количество жилых комнат в интерфейсе указывается без кухни; кухня уже входит в общую площадь объекта.',
@@ -118,6 +126,30 @@ app.get('/api/v1/admin/calculation-source', async (request, reply) => {
       'Вознаграждение риелтора считается как 5% только от стоимости работ.'
     ]
   };
+});
+
+app.put('/api/v1/admin/calculation-value', async (request, reply) => {
+  const auth = requireFeedbackAdmin(request as any);
+  if (!auth.ok) return reply.code(auth.code).send({ error: auth.error });
+
+  try {
+    const input = manualPricingValueSchema.parse(request.body);
+    const row = await setManualPricingValue(input);
+    return { row };
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return reply.code(400).send({
+        error: 'VALIDATION_ERROR',
+        details: error.flatten()
+      });
+    }
+
+    request.log.error(error);
+    return reply.code(503).send({
+      error: 'CALCULATION_VALUE_UPDATE_FAILED',
+      message: error instanceof Error ? error.message : 'Не удалось сохранить значение'
+    });
+  }
 });
 
 app.get('/api/v1/admin/smetas', async (request, reply) => {
@@ -326,6 +358,7 @@ app.post('/api/v1/estimate', async (request, reply) => {
     const input = estimateRequestSchema.parse(request.body);
     try {
       await refreshPricingOverrides();
+      await applyManualPricingValues();
     } catch (overrideError) {
       request.log.warn(overrideError);
     }
