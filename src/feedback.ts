@@ -1,9 +1,5 @@
-import { createSign } from 'node:crypto';
+import { Pool } from 'pg';
 import { z } from 'zod';
-
-const DEFAULT_SPREADSHEET_ID = '1yGPFUaXF5QPHifD4kBHfk-ratS88SQkiS0DzDH-tFEY';
-const DEFAULT_SHEET_NAME = 'Лист1';
-const SHEETS_SCOPE = 'https://www.googleapis.com/auth/spreadsheets';
 
 export const feedbackSchema = z.object({
   status: z.enum(['ok', 'error']),
@@ -14,95 +10,92 @@ export const feedbackSchema = z.object({
   estimate: z.record(z.any())
 });
 
-type FeedbackInput = z.infer<typeof feedbackSchema>;
+export type FeedbackInput = z.infer<typeof feedbackSchema>;
 
-interface GoogleCredentials {
-  client_email: string;
-  private_key: string;
-}
+export const feedbackResolutionSchema = z.object({
+  resolutionStatus: z.enum(['new', 'in_progress', 'fixed']),
+  note: z.string().max(2000).optional().default('')
+});
 
-let tokenCache: { accessToken: string; expiresAt: number } | null = null;
+let pool: Pool | null = null;
+let initialized = false;
 
-function base64Url(value: string | Buffer) {
-  return Buffer.from(value)
-    .toString('base64')
-    .replaceAll('+', '-')
-    .replaceAll('/', '_')
-    .replaceAll('=', '');
-}
+function getPool() {
+  if (pool) return pool;
 
-function readCredentials(): GoogleCredentials {
-  const json = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+  const connectionString = process.env.DATABASE_URL;
+  const hasPgParts = process.env.PGHOST && process.env.PGDATABASE && process.env.PGUSER;
 
-  if (json) {
-    const parsed = JSON.parse(json);
-    if (!parsed.client_email || !parsed.private_key) {
-      throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON должен содержать client_email и private_key');
-    }
-    return {
-      client_email: String(parsed.client_email),
-      private_key: String(parsed.private_key).replaceAll('\\n', '\n')
-    };
+  if (!connectionString && !hasPgParts) {
+    throw new Error('Не настроена база данных. Добавьте DATABASE_URL или PGHOST/PGDATABASE/PGUSER/PGPASSWORD.');
   }
 
-  const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
-  const privateKey = process.env.GOOGLE_PRIVATE_KEY;
+  const sslEnabled = process.env.DATABASE_SSL === 'true';
 
-  if (!clientEmail || !privateKey) {
-    throw new Error(
-      'Не настроена авторизация Google Sheets. Добавьте GOOGLE_SERVICE_ACCOUNT_JSON или GOOGLE_CLIENT_EMAIL + GOOGLE_PRIVATE_KEY.'
-    );
-  }
-
-  return {
-    client_email: clientEmail,
-    private_key: privateKey.replaceAll('\\n', '\n')
-  };
-}
-
-async function getAccessToken() {
-  if (tokenCache && tokenCache.expiresAt > Date.now() + 60_000) {
-    return tokenCache.accessToken;
-  }
-
-  const credentials = readCredentials();
-  const now = Math.floor(Date.now() / 1000);
-  const header = base64Url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
-  const payload = base64Url(JSON.stringify({
-    iss: credentials.client_email,
-    scope: SHEETS_SCOPE,
-    aud: 'https://oauth2.googleapis.com/token',
-    iat: now,
-    exp: now + 3600
-  }));
-  const unsigned = `${header}.${payload}`;
-
-  const signer = createSign('RSA-SHA256');
-  signer.update(unsigned);
-  signer.end();
-  const signature = base64Url(signer.sign(credentials.private_key));
-  const assertion = `${unsigned}.${signature}`;
-
-  const response = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-      assertion
-    })
+  pool = new Pool({
+    connectionString,
+    ssl: sslEnabled ? { rejectUnauthorized: false } : undefined,
+    max: Number(process.env.PGPOOL_MAX ?? 5),
+    idleTimeoutMillis: 30_000
   });
 
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Не удалось получить Google access token: ${response.status} ${text}`);
-  }
+  return pool;
+}
 
-  const data = await response.json() as { access_token: string; expires_in?: number };
-  tokenCache = {
-    accessToken: data.access_token,
-    expiresAt: Date.now() + (data.expires_in ?? 3600) * 1000
-  };
-  return tokenCache.accessToken;
+export async function initFeedbackStore() {
+  if (initialized) return;
+  const db = getPool();
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS estimate_feedback (
+      id BIGSERIAL PRIMARY KEY,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      status VARCHAR(16) NOT NULL CHECK (status IN ('ok', 'error')),
+      resolution_status VARCHAR(16) NOT NULL DEFAULT 'new' CHECK (resolution_status IN ('new','in_progress','fixed')),
+      resolution_note TEXT NOT NULL DEFAULT '',
+      issue_type VARCHAR(120) NOT NULL DEFAULT '',
+      package_code VARCHAR(32) NOT NULL DEFAULT '',
+      area_m2 NUMERIC(10,2) NOT NULL DEFAULT 0,
+      estimate_total NUMERIC(14,2) NOT NULL DEFAULT 0,
+      price_per_m2 NUMERIC(14,2) NOT NULL DEFAULT 0,
+      expected_total NUMERIC(14,2),
+      deviation_percent NUMERIC(10,4),
+      works_total NUMERIC(14,2) NOT NULL DEFAULT 0,
+      materials_total NUMERIC(14,2) NOT NULL DEFAULT 0,
+      delivery_total NUMERIC(14,2) NOT NULL DEFAULT 0,
+      vat_total NUMERIC(14,2) NOT NULL DEFAULT 0,
+      agent_reward NUMERIC(14,2) NOT NULL DEFAULT 0,
+      calculation_mode VARCHAR(32) NOT NULL DEFAULT '',
+      property_type VARCHAR(32) NOT NULL DEFAULT '',
+      object_condition VARCHAR(32) NOT NULL DEFAULT '',
+      rooms INTEGER NOT NULL DEFAULT 0,
+      bathrooms INTEGER NOT NULL DEFAULT 0,
+      doors INTEGER NOT NULL DEFAULT 0,
+      doorways INTEGER NOT NULL DEFAULT 0,
+      needs_full_electrical BOOLEAN NOT NULL DEFAULT FALSE,
+      needs_full_plumbing BOOLEAN NOT NULL DEFAULT FALSE,
+      needs_demolition BOOLEAN NOT NULL DEFAULT FALSE,
+      needs_ceiling BOOLEAN NOT NULL DEFAULT FALSE,
+      has_balcony BOOLEAN NOT NULL DEFAULT FALSE,
+      warm_floor_m2 NUMERIC(10,2) NOT NULL DEFAULT 0,
+      comment TEXT NOT NULL DEFAULT '',
+      input_json JSONB NOT NULL,
+      estimate_json JSONB NOT NULL
+    )
+  `);
+
+  await db.query(`
+    CREATE INDEX IF NOT EXISTS estimate_feedback_created_at_idx
+    ON estimate_feedback (created_at DESC)
+  `);
+
+  await db.query(`
+    CREATE INDEX IF NOT EXISTS estimate_feedback_resolution_idx
+    ON estimate_feedback (resolution_status, created_at DESC)
+  `);
+
+  initialized = true;
 }
 
 function num(value: unknown) {
@@ -110,104 +103,132 @@ function num(value: unknown) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function boolLabel(value: unknown) {
-  return value ? 'Да' : 'Нет';
-}
-
-function packageLabel(code: unknown) {
-  return ({
-    minimal: 'Минимальный',
-    standard: 'Стандарт',
-    comfort: 'Комфорт',
-    premium: 'Премиум'
-  } as Record<string, string>)[String(code)] ?? String(code ?? '');
-}
-
-function propertyLabel(code: unknown) {
-  return ({
-    apartment: 'Квартира',
-    house: 'Дом',
-    commercial: 'Коммерция'
-  } as Record<string, string>)[String(code)] ?? String(code ?? '');
-}
-
-function conditionLabel(code: unknown) {
-  return ({
-    new_build: 'Новостройка',
-    secondary_good: 'Вторичка, хорошее состояние',
-    secondary_worn: 'Вторичка, нужен ремонт',
-    shell: 'Черновая отделка'
-  } as Record<string, string>)[String(code)] ?? String(code ?? '');
-}
-
-function modeLabel(code: unknown) {
-  return code === 'exact' ? 'Точная по замерам' : 'Быстрый';
-}
-
-function buildRow(feedback: FeedbackInput) {
+export async function appendFeedback(feedback: FeedbackInput) {
+  await initFeedbackStore();
+  const db = getPool();
   const input = feedback.input;
   const estimate = feedback.estimate;
-  const expectedTotal = feedback.expectedTotal ?? 0;
+  const expected = feedback.expectedTotal ?? null;
   const estimateTotal = num(estimate.clientTotal);
-  const deviation = expectedTotal > 0 ? (estimateTotal - expectedTotal) / expectedTotal : '';
+  const deviationPercent =
+    expected && expected > 0 ? ((estimateTotal - expected) / expected) * 100 : null;
 
-  return [
-    new Date().toISOString(),
-    feedback.status === 'ok' ? 'Верно' : 'Ошибка',
-    feedback.issueType,
-    packageLabel(input.package),
-    num(input.areaM2),
-    estimateTotal,
-    num(estimate.pricePerM2Final),
-    expectedTotal || '',
-    deviation,
-    num(estimate.worksTotal),
-    num(estimate.materialsTotal),
-    num(estimate.deliveryTotal),
-    num(estimate.vat),
-    num(estimate.agentReward),
-    modeLabel(input.calculationMode),
-    propertyLabel(input.propertyType),
-    conditionLabel(input.condition),
-    num(input.rooms),
-    num(input.bathrooms),
-    num(input.doors),
-    num(input.doorways),
-    boolLabel(input.needsFullElectrical),
-    boolLabel(input.needsFullPlumbing),
-    boolLabel(input.needsDemolition),
-    boolLabel(input.needsCeiling),
-    boolLabel(input.hasBalcony),
-    num(input.warmFloorM2),
-    feedback.comment,
-    JSON.stringify(input),
-    JSON.stringify(estimate)
-  ];
+  const result = await db.query(
+    `
+      INSERT INTO estimate_feedback (
+        status, issue_type, package_code, area_m2, estimate_total, price_per_m2,
+        expected_total, deviation_percent, works_total, materials_total,
+        delivery_total, vat_total, agent_reward, calculation_mode, property_type,
+        object_condition, rooms, bathrooms, doors, doorways,
+        needs_full_electrical, needs_full_plumbing, needs_demolition,
+        needs_ceiling, has_balcony, warm_floor_m2, comment, input_json, estimate_json
+      )
+      VALUES (
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,
+        $11,$12,$13,$14,$15,$16,$17,$18,$19,$20,
+        $21,$22,$23,$24,$25,$26,$27,$28::jsonb,$29::jsonb
+      )
+      RETURNING id, created_at
+    `,
+    [
+      feedback.status,
+      feedback.issueType,
+      String(input.package ?? ''),
+      num(input.areaM2),
+      estimateTotal,
+      num(estimate.pricePerM2Final),
+      expected,
+      deviationPercent,
+      num(estimate.worksTotal),
+      num(estimate.materialsTotal),
+      num(estimate.deliveryTotal),
+      num(estimate.vat),
+      num(estimate.agentReward),
+      String(input.calculationMode ?? ''),
+      String(input.propertyType ?? ''),
+      String(input.condition ?? ''),
+      Math.round(num(input.rooms)),
+      Math.round(num(input.bathrooms)),
+      Math.round(num(input.doors)),
+      Math.round(num(input.doorways)),
+      Boolean(input.needsFullElectrical),
+      Boolean(input.needsFullPlumbing),
+      Boolean(input.needsDemolition),
+      Boolean(input.needsCeiling),
+      Boolean(input.hasBalcony),
+      num(input.warmFloorM2),
+      feedback.comment,
+      JSON.stringify(input),
+      JSON.stringify(estimate)
+    ]
+  );
+
+  return result.rows[0];
 }
 
-export async function appendFeedback(feedback: FeedbackInput) {
-  const spreadsheetId = process.env.FEEDBACK_SPREADSHEET_ID ?? DEFAULT_SPREADSHEET_ID;
-  const sheetName = process.env.FEEDBACK_SHEET_NAME ?? DEFAULT_SHEET_NAME;
-  const accessToken = await getAccessToken();
-  const row = buildRow(feedback);
-  const range = encodeURIComponent(`'${sheetName.replaceAll("'", "''")}'!A:AD`);
-  const url =
-    `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}/values/${range}:append` +
-    '?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS';
+export async function listFeedback(options: {
+  resolutionStatus?: 'new' | 'in_progress' | 'fixed';
+  limit?: number;
+  offset?: number;
+}) {
+  await initFeedbackStore();
+  const db = getPool();
+  const limit = Math.min(Math.max(options.limit ?? 100, 1), 500);
+  const offset = Math.max(options.offset ?? 0, 0);
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ values: [row] })
-  });
+  const params: unknown[] = [];
+  let where = '';
 
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Google Sheets append failed: ${response.status} ${text}`);
+  if (options.resolutionStatus) {
+    params.push(options.resolutionStatus);
+    where = `WHERE resolution_status = $${params.length}`;
   }
 
-  return response.json();
+  params.push(limit);
+  const limitIndex = params.length;
+  params.push(offset);
+  const offsetIndex = params.length;
+
+  const result = await db.query(
+    `
+      SELECT
+        id, created_at, updated_at, status, resolution_status, resolution_note,
+        issue_type, package_code, area_m2, estimate_total, price_per_m2,
+        expected_total, deviation_percent, works_total, materials_total,
+        delivery_total, vat_total, agent_reward, calculation_mode,
+        property_type, object_condition, rooms, bathrooms, doors, doorways,
+        needs_full_electrical, needs_full_plumbing, needs_demolition,
+        needs_ceiling, has_balcony, warm_floor_m2, comment
+      FROM estimate_feedback
+      ${where}
+      ORDER BY created_at DESC
+      LIMIT $${limitIndex} OFFSET $${offsetIndex}
+    `,
+    params
+  );
+
+  return result.rows;
+}
+
+export async function updateFeedbackResolution(
+  id: number,
+  resolutionStatus: 'new' | 'in_progress' | 'fixed',
+  note: string
+) {
+  await initFeedbackStore();
+  const db = getPool();
+
+  const result = await db.query(
+    `
+      UPDATE estimate_feedback
+      SET resolution_status = $2,
+          resolution_note = $3,
+          updated_at = NOW()
+      WHERE id = $1
+      RETURNING id, resolution_status, resolution_note, updated_at
+    `,
+    [id, resolutionStatus, note]
+  );
+
+  return result.rows[0] ?? null;
 }
