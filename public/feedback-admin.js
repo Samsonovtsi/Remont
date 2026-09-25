@@ -169,7 +169,7 @@ function renderCalculationSource(source){
       <tr>
         <td><strong>${esc(conditionLabels[code])}</strong></td>
         <td>${editableRateCell('condition','',code,factor)}</td>
-        <td>${extra > 0 ? '+'+num.format(extra)+'%' : '0%'}</td>
+        <td>${extra > 0 ? '+'+num.format(extra)+'%' : extra < 0 ? num.format(extra)+'%' : '0%'}</td>
       </tr>
     `;
   }).join('');
