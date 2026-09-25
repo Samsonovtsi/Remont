@@ -298,7 +298,7 @@ function setupCountChoice(groupId, hiddenId, otherId, otherMin) {
   });
 }
 
-setupCountChoice('roomsChoices', 'rooms', 'roomsOther', 5);
+setupCountChoice('roomsChoices', 'rooms', 'roomsOther', 4);
 setupCountChoice('bathroomsChoices', 'bathrooms', 'bathroomsOther', 0);
 
 function changeDoors(delta) {
