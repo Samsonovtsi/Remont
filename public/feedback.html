@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Журнал ошибок смет</title>
+  <title>Административная панель — ремонт</title>
   <style>
     :root{--bg:#f5f2ee;--card:#fff;--ink:#181818;--muted:#756e68;--line:#e8e2dc;--accent:#e33a2e;--ok:#1f7a4d;--warn:#9a6516}
     *{box-sizing:border-box}
@@ -24,6 +24,21 @@
     .stat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px}
     .stat span{display:block;font-size:11px;color:var(--muted)}
     .stat strong{display:block;margin-top:5px;font-size:24px}
+    .section-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:22px 0 10px}
+    .section-head h2{margin:0;font-size:22px}
+    .analytics-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:12px}
+    .chart-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:15px;min-width:0}
+    .chart-card h3{font-size:14px;margin:0 0 12px}
+    .bar-list{display:grid;gap:8px}
+    .bar-row{display:grid;grid-template-columns:minmax(90px,140px) 1fr auto;gap:8px;align-items:center;font-size:11px}
+    .bar-track{height:9px;background:#eee8e2;border-radius:999px;overflow:hidden}
+    .bar-fill{height:100%;background:#181818;border-radius:999px}
+    .daily-chart{display:flex;gap:5px;align-items:flex-end;height:150px;padding-top:8px;border-bottom:1px solid var(--line)}
+    .day-col{flex:1;min-width:8px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;gap:5px}
+    .day-bar{width:100%;max-width:22px;background:#181818;border-radius:4px 4px 0 0;min-height:2px}
+    .day-label{font-size:8px;color:var(--muted);transform:rotate(-45deg);transform-origin:center;white-space:nowrap;margin-bottom:-12px}
+    .kpi-note{font-size:10px;color:var(--muted);margin-top:4px}
+    .conversion{color:var(--ok);font-weight:800}
     .table-wrap{overflow:auto;background:#fff;border:1px solid var(--line);border-radius:18px}
     table{width:100%;border-collapse:collapse;min-width:1200px}
     th,td{padding:10px 11px;border-bottom:1px solid var(--line);text-align:left;font-size:12px;vertical-align:top}
@@ -39,7 +54,8 @@
     .status{margin-top:10px;font-size:12px;min-height:16px}
     .error{color:#a62a22;font-weight:700}
     .hidden{display:none}
-    @media(max-width:760px){.top{display:block}.auth{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}h1{font-size:30px}}
+    @media(max-width:1050px){.analytics-grid{grid-template-columns:1fr 1fr}.analytics-grid .chart-card:first-child{grid-column:1/-1}}
+    @media(max-width:760px){.top{display:block}.auth{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}.analytics-grid{grid-template-columns:1fr}.analytics-grid .chart-card:first-child{grid-column:auto}h1{font-size:30px}}
   </style>
 </head>
 <body>
@@ -47,8 +63,8 @@
     <div class="top">
       <div>
         <div class="muted">Этажи.Ремонт</div>
-        <h1>Журнал ошибок смет</h1>
-        <p class="muted">Внутренний журнал обратной связи по расчётам калькулятора.</p>
+        <h1>Административная панель</h1>
+        <p class="muted">Аналитика использования сервиса и журнал обратной связи по сметам.</p>
       </div>
       <a href="/" style="color:#181818;font-weight:800">← К калькулятору</a>
     </div>
@@ -65,6 +81,50 @@
     </section>
 
     <section id="journal" class="hidden">
+
+      <div class="section-head">
+        <h2>Аналитика сервиса</h2>
+        <select id="analyticsDays" style="width:auto">
+          <option value="7">7 дней</option>
+          <option value="30" selected>30 дней</option>
+          <option value="90">90 дней</option>
+        </select>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><span>Переходы на сервис</span><strong id="analyticsViews">0</strong><div class="kpi-note">просмотры страницы</div></div>
+        <div class="stat"><span>Уникальные сессии</span><strong id="analyticsSessions">0</strong><div class="kpi-note">без хранения персональных данных</div></div>
+        <div class="stat"><span>Предложения клиенту</span><strong id="analyticsOffers">0</strong><div id="offerConversion" class="kpi-note conversion">—</div></div>
+        <div class="stat"><span>Контакты</span><strong id="analyticsContacts">0</strong><div id="contactConversion" class="kpi-note conversion">—</div></div>
+      </div>
+
+      <div class="analytics-grid">
+        <div class="chart-card">
+          <h3>Активность по дням</h3>
+          <div id="dailyChart" class="daily-chart"></div>
+        </div>
+        <div class="chart-card">
+          <h3>Клики по пакетам</h3>
+          <div id="packageBars" class="bar-list"></div>
+        </div>
+        <div class="chart-card">
+          <h3>Каналы связи</h3>
+          <div id="contactBars" class="bar-list"></div>
+        </div>
+        <div class="chart-card">
+          <h3>Популярные изменения параметров</h3>
+          <div id="optionBars" class="bar-list"></div>
+        </div>
+        <div class="chart-card">
+          <h3>События</h3>
+          <div id="eventBars" class="bar-list"></div>
+        </div>
+      </div>
+
+      <div class="section-head">
+        <h2>Журнал ошибок смет</h2>
+      </div>
+
       <div class="toolbar">
         <select id="filter">
           <option value="">Все статусы</option>
@@ -105,6 +165,6 @@
     </section>
   </main>
 
-  <script src="/feedback-admin.js?v=1"></script>
+  <script src="/feedback-admin.js?v=2"></script>
 </body>
 </html>
