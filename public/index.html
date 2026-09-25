@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Конфигуратор ремонта — Этажи.Ремонт</title>
-  <link rel="stylesheet" href="/styles.css?v=24" />
+  <link rel="stylesheet" href="/styles.css?v=25" />
 </head>
 <body>
   <main class="page configurator-page">
@@ -96,16 +96,17 @@
           <div class="config-section-head">
             <span class="step-number">3</span>
             <div>
-              <h2>Дизайн-проект квартиры</h2>
-              <p>Выберите формат проекта. Стоимость считается отдельно от ремонта по площади квартиры. Прайс действует с 1 сентября 2026.</p>
+              <h2>Добавьте визуализацию к проекту</h2>
+              <p>Технический проект уже включён в каждый пакет ремонта. При желании добавьте коллажи, фотореалистичную визуализацию или расширенный проект 360° — оплачивается только разница.</p>
             </div>
           </div>
 
-          <div class="design-project-toolbar">
-            <button id="designNoneButton" type="button" class="design-none-button active">
-              <strong>Без дизайн-проекта</strong>
-              <span>Только ремонт</span>
-            </button>
+          <div class="design-included-notice">
+            <span class="design-included-icon">✓</span>
+            <div>
+              <strong>Технический проект уже входит в стоимость ремонта</strong>
+              <span>Вы ничего не доплачиваете за базовые чертежи и схемы. Ниже — только варианты улучшения проекта.</span>
+            </div>
           </div>
 
           <div id="designProjects" class="design-project-grid"></div>
@@ -235,7 +236,7 @@
             <div class="reward configurator-reward">
               <div>
                 <span>Вознаграждение риелтора</span>
-                <small>5% от стоимости работ и выбранного дизайн-проекта</small>
+                <small>5% от стоимости работ и оплачиваемого улучшения дизайн-проекта</small>
               </div>
               <strong id="rewardTotal">—</strong>
             </div>
@@ -315,6 +316,6 @@
     </a>
   </aside>
 
-  <script src="/app.js?v=33"></script>
+  <script src="/app.js?v=34"></script>
 </body>
 </html>
