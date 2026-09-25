@@ -56,6 +56,82 @@ function render(rows){
   $('avgDeviation').textContent = deviations.length ? num.format(deviations.reduce((a,b)=>a+Math.abs(b),0)/deviations.length)+'%' : '—';
 }
 
+
+function percent(part, total){
+  if(!total) return '—';
+  return num.format((Number(part || 0) / Number(total)) * 100) + '%';
+}
+function eventLabel(value){
+  return {
+    page_view:'Переходы',
+    package_click:'Клики по пакетам',
+    option_change:'Изменения параметров',
+    calculate:'Ручные расчёты',
+    offer_generate:'Предложения клиенту',
+    feedback_open:'Открытие формы ошибки',
+    feedback_submit:'Отправка обратной связи',
+    contact_click:'Переходы в контакты'
+  }[value] || value;
+}
+function optionLabel(value){
+  return {
+    areaM2:'Площадь',
+    propertyType:'Тип объекта',
+    condition:'Состояние',
+    rooms:'Комнаты',
+    bathrooms:'Санузлы',
+    doors:'Двери',
+    doorways:'Проёмы',
+    calculationMode:'Режим расчёта',
+    needsFullElectrical:'Электрика',
+    needsFullPlumbing:'Сантехника',
+    needsDemolition:'Демонтаж',
+    needsCeiling:'Потолок',
+    hasBalcony:'Балкон',
+    warmFloorM2:'Тёплый пол'
+  }[value] || value;
+}
+function contactLabel(value){
+  return {phone:'Телефон',telegram:'Telegram',max:'MAX'}[value] || value;
+}
+function renderBars(rootId, rows, labelFn){
+  const root = $(rootId);
+  const max = Math.max(1, ...rows.map(r=>Number(r.count)||0));
+  root.innerHTML = rows.length ? rows.map(row=>{
+    const label = labelFn(row.package ?? row.channel ?? row.option ?? row.event_type ?? '');
+    const count = Number(row.count)||0;
+    return '<div class="bar-row"><span>'+esc(label)+'</span><div class="bar-track"><div class="bar-fill" style="width:'+Math.max(3,(count/max)*100)+'%"></div></div><strong>'+count+'</strong></div>';
+  }).join('') : '<div class="muted">Пока нет данных.</div>';
+}
+function renderDaily(rows){
+  const root = $('dailyChart');
+  if(!rows.length){
+    root.innerHTML='<div class="muted">Пока нет данных.</div>';
+    return;
+  }
+  const max = Math.max(1, ...rows.map(r=>Number(r.page_views)||0));
+  root.innerHTML = rows.map(row=>{
+    const views=Number(row.page_views)||0;
+    const height=Math.max(2,(views/max)*120);
+    const day=String(row.day || '').slice(5);
+    return '<div class="day-col" title="'+esc(row.day)+': '+views+' просмотров"><div class="day-bar" style="height:'+height+'px"></div><span class="day-label">'+esc(day)+'</span></div>';
+  }).join('');
+}
+function renderAnalytics(summary){
+  const t=summary.totals || {};
+  $('analyticsViews').textContent = Number(t.page_views || 0);
+  $('analyticsSessions').textContent = Number(t.unique_sessions || 0);
+  $('analyticsOffers').textContent = Number(t.offers || 0);
+  $('analyticsContacts').textContent = Number(t.contact_clicks || 0);
+  $('offerConversion').textContent = 'Конверсия от сессий: '+percent(t.offers, t.unique_sessions);
+  $('contactConversion').textContent = 'Конверсия от сессий: '+percent(t.contact_clicks, t.unique_sessions);
+  renderDaily(summary.daily || []);
+  renderBars('packageBars', summary.packageClicks || [], packageLabel);
+  renderBars('contactBars', summary.contacts || [], contactLabel);
+  renderBars('optionBars', summary.optionChanges || [], optionLabel);
+  renderBars('eventBars', summary.eventBreakdown || [], eventLabel);
+}
+
 async function load(){
   token = $('token').value.trim();
   if(!token){ $('status').textContent='Введите код доступа.'; $('status').className='status error'; return; }
@@ -66,10 +142,15 @@ async function load(){
     const filter = $('filter').value;
     const query = new URLSearchParams({limit:'300'});
     if(filter) query.set('status',filter);
-    const data = await api('/api/v1/feedback?'+query.toString());
+    const days = $('analyticsDays').value || '30';
+    const [data, analytics] = await Promise.all([
+      api('/api/v1/feedback?'+query.toString()),
+      api('/api/v1/analytics/summary?days='+encodeURIComponent(days))
+    ]);
     render(data.rows || []);
+    renderAnalytics(analytics);
     $('journal').classList.remove('hidden');
-    $('status').textContent='Журнал загружен.';
+    $('status').textContent='Панель загружена.';
   }catch(err){
     $('journal').classList.add('hidden');
     $('status').textContent=err.message;
@@ -93,6 +174,7 @@ async function updateState(id, resolutionStatus){
 $('loadBtn').addEventListener('click', load);
 $('refreshBtn').addEventListener('click', load);
 $('filter').addEventListener('change', load);
+$('analyticsDays').addEventListener('change', load);
 $('rows').addEventListener('click', event=>{
   const button = event.target.closest('button[data-id]');
   if(!button) return;
