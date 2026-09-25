@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Конфигуратор ремонта — Этажи.Ремонт</title>
-  <link rel="stylesheet" href="/styles.css?v=22" />
+  <link rel="stylesheet" href="/styles.css?v=23" />
 </head>
 <body>
   <main class="page configurator-page">
@@ -176,8 +176,27 @@
             <div class="estimate-divider"></div>
 
             <div class="estimate-subtitle">Структура расчёта</div>
-            <div class="metric-row metric-row-single">
-              <div><span>Стоимость работ</span><strong id="worksTotal">—</strong></div>
+            <div class="estimate-structure-grid">
+              <div class="estimate-structure-item">
+                <span>Работы</span>
+                <strong id="worksTotal">—</strong>
+              </div>
+              <div class="estimate-structure-item">
+                <span>Материалы</span>
+                <strong id="materialsTotal">—</strong>
+              </div>
+              <div class="estimate-structure-item">
+                <span>Доставка / вывоз</span>
+                <strong id="deliveryTotal">—</strong>
+              </div>
+              <div class="estimate-structure-item">
+                <span>НДС</span>
+                <strong id="vatTotal">—</strong>
+              </div>
+              <div id="adjustmentRow" class="estimate-structure-item estimate-structure-wide hidden">
+                <span id="adjustmentLabel">Корректировка</span>
+                <strong id="adjustmentTotal">—</strong>
+              </div>
             </div>
 
             <div class="reward configurator-reward">
@@ -263,6 +282,6 @@
     </a>
   </aside>
 
-  <script src="/app.js?v=28"></script>
+  <script src="/app.js?v=29"></script>
 </body>
 </html>
