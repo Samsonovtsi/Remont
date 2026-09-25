@@ -99,7 +99,10 @@ function renderPackages() {
     const el = document.createElement('article');
     el.className = 'package package-' + code + (code === selectedPackage ? ' active' : '');
 
-    const priceText = `от ${rub.format(pkg.minPerM2)} / м²`;
+    const isApartment = $('propertyType')?.value === 'apartment';
+    const priceText = isApartment
+      ? `от ${rub.format(pkg.minPerM2)} / м²`
+      : 'Индивидуальный расчёт по смете';
 
     const included = (pkg.included || []).map(item =>
       `<li><span class="pkg-icon">✓</span><span>${item}</span></li>`
@@ -175,6 +178,10 @@ function renderPackages() {
 
 $('calculationMode').addEventListener('change', () => {
   $('exactFields').classList.toggle('hidden', $('calculationMode').value !== 'exact');
+});
+
+$('propertyType').addEventListener('change', () => {
+  renderPackages();
 });
 
 function num(id) {
