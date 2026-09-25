@@ -156,13 +156,15 @@ function renderCalculationSource(source){
   $('sourceDeliveryRateInput').value = String(Number(source.constants?.deliveryRate || 0) * 100);
 
   const conditionLabels={
-    new_build:'Новостройка',
-    secondary_good:'Вторичка, хорошее состояние',
-    secondary_worn:'Вторичка, нужен ремонт',
-    shell:'Черновая отделка'
+    shell:'Новостройка: без отделки (черновая)',
+    white_box:'Новостройка: предчистовая (White Box)',
+    developer_finish:'Новостройка: чистовая от застройщика',
+    secondary_good:'Вторичка: хорошее состояние',
+    secondary_cosmetic:'Вторичка: косметический ремонт',
+    secondary_worn:'Вторичка: капитальный ремонт'
   };
   const conditionFactors=source.conditionFactors || {};
-  $('conditionFactorRows').innerHTML=['new_build','secondary_good','secondary_worn','shell'].map(code=>{
+  $('conditionFactorRows').innerHTML=['shell','white_box','developer_finish','secondary_good','secondary_cosmetic','secondary_worn'].map(code=>{
     const factor=Number(conditionFactors[code] ?? 1);
     const extra=Math.round((factor-1)*1000)/10;
     return `
