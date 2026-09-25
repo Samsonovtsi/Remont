@@ -248,11 +248,13 @@ export function setPricingConstant(
 
 // В предоставленных сметах нет подтверждённых процентных надбавок
 // по типу/состоянию объекта. Поэтому эти параметры не меняют цену автоматически.
+// Коэффициенты состояния применяются только к базовым отделочным работам.
+ // Это настраиваемая модель оценки дополнительной трудоёмкости, а не ставка из конкретной сметы.
 export const CONDITION_FACTOR: Record<Condition, number> = {
   new_build: 1.00,
-  secondary_good: 1.00,
-  secondary_worn: 1.00,
-  shell: 1.00
+  secondary_good: 1.04,
+  secondary_worn: 1.12,
+  shell: 1.08
 };
 
 export const PROPERTY_FACTOR: Record<PropertyType, number> = {
