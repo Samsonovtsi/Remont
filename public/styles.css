@@ -355,3 +355,16 @@ textarea:focus{border-color:#999}
   .floating-phone-popover{right:62px;min-width:190px}
   .floating-phone-popover a{font-size:14px}
 }
+
+
+/* Package inheritance note */
+.package-inheritance-note{
+  margin-top:10px;
+  padding:10px 12px;
+  border-radius:12px;
+  background:#f4f1ed;
+  color:#5a534d;
+  font-size:11px;
+  line-height:1.45;
+  border:1px solid var(--line);
+}
