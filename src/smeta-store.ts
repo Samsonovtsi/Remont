@@ -98,7 +98,7 @@ export async function getSmetaDocument(id: number) {
 
   const result = await db.query(
     `
-      SELECT id, original_name, mime_type, file_size, content
+      SELECT id, original_name, mime_type, file_size, note, status, content
       FROM smeta_documents
       WHERE id = $1
     `,
@@ -114,6 +114,17 @@ export async function deleteSmetaDocument(id: number) {
   const result = await db.query(
     'DELETE FROM smeta_documents WHERE id = $1 RETURNING id',
     [id]
+  );
+  return result.rows[0] ?? null;
+}
+
+
+export async function updateSmetaDocumentStatus(id: number, status: string) {
+  await initSmetaStore();
+  const db = getPool();
+  const result = await db.query(
+    'UPDATE smeta_documents SET status = $2 WHERE id = $1 RETURNING id, status',
+    [id, status]
   );
   return result.rows[0] ?? null;
 }
