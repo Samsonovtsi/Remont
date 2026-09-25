@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Журнал ошибок смет</title>
+  <style>
+    :root{--bg:#f5f2ee;--card:#fff;--ink:#181818;--muted:#756e68;--line:#e8e2dc;--accent:#e33a2e;--ok:#1f7a4d;--warn:#9a6516}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+    .page{max-width:1440px;margin:0 auto;padding:28px 18px 60px}
+    .top{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:18px}
+    h1{margin:0;font-size:36px;letter-spacing:-1px}
+    .muted{color:var(--muted)}
+    .panel{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px}
+    .auth{display:grid;grid-template-columns:minmax(220px,420px) auto;gap:10px;align-items:end}
+    label span{display:block;font-size:12px;font-weight:800;margin-bottom:6px}
+    input,select,textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 11px;font:inherit;background:#fff}
+    button{border:0;border-radius:10px;padding:10px 13px;font:inherit;font-weight:800;cursor:pointer;background:#181818;color:#fff}
+    button.secondary{background:#eee8e2;color:#3f3935}
+    .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:14px 0}
+    .toolbar select{width:auto;min-width:180px}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+    .stat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px}
+    .stat span{display:block;font-size:11px;color:var(--muted)}
+    .stat strong{display:block;margin-top:5px;font-size:24px}
+    .table-wrap{overflow:auto;background:#fff;border:1px solid var(--line);border-radius:18px}
+    table{width:100%;border-collapse:collapse;min-width:1200px}
+    th,td{padding:10px 11px;border-bottom:1px solid var(--line);text-align:left;font-size:12px;vertical-align:top}
+    th{position:sticky;top:0;background:#faf8f5;z-index:1;font-size:11px}
+    .badge{display:inline-block;padding:4px 7px;border-radius:999px;font-size:10px;font-weight:800}
+    .badge-error{background:#fff0ed;color:#a62a22}
+    .badge-ok{background:#e7f4ec;color:#17633e}
+    .badge-new{background:#fff2cf;color:#7f5617}
+    .badge-progress{background:#eaf0ff;color:#385397}
+    .badge-fixed{background:#e7f4ec;color:#17633e}
+    .actions{display:flex;gap:6px;flex-wrap:wrap}
+    .actions button{font-size:11px;padding:7px 8px}
+    .status{margin-top:10px;font-size:12px;min-height:16px}
+    .error{color:#a62a22;font-weight:700}
+    .hidden{display:none}
+    @media(max-width:760px){.top{display:block}.auth{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}h1{font-size:30px}}
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="top">
+      <div>
+        <div class="muted">Этажи.Ремонт</div>
+        <h1>Журнал ошибок смет</h1>
+        <p class="muted">Внутренний журнал обратной связи по расчётам калькулятора.</p>
+      </div>
+      <a href="/" style="color:#181818;font-weight:800">← К калькулятору</a>
+    </div>
+
+    <section class="panel">
+      <div class="auth">
+        <label>
+          <span>Код доступа администратора</span>
+          <input id="token" type="password" autocomplete="current-password" placeholder="FEEDBACK_ADMIN_TOKEN" />
+        </label>
+        <button id="loadBtn" type="button">Открыть журнал</button>
+      </div>
+      <div id="status" class="status"></div>
+    </section>
+
+    <section id="journal" class="hidden">
+      <div class="toolbar">
+        <select id="filter">
+          <option value="">Все статусы</option>
+          <option value="new">Новые</option>
+          <option value="in_progress">В работе</option>
+          <option value="fixed">Исправленные</option>
+        </select>
+        <button id="refreshBtn" type="button" class="secondary">Обновить</button>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><span>Всего записей</span><strong id="countAll">0</strong></div>
+        <div class="stat"><span>Ошибок</span><strong id="countErrors">0</strong></div>
+        <div class="stat"><span>Новых</span><strong id="countNew">0</strong></div>
+        <div class="stat"><span>Среднее отклонение</span><strong id="avgDeviation">—</strong></div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Дата</th><th>Статус</th><th>Этап</th><th>Пакет</th><th>Площадь</th>
+              <th>Расчёт</th><th>Ожидалось</th><th>Отклонение</th><th>Тип ошибки</th>
+              <th>Комментарий</th><th>Работы</th><th>Материалы</th><th>Действия</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="/feedback-admin.js?v=1"></script>
+</body>
+</html>
