@@ -155,6 +155,25 @@ function renderCalculationSource(source){
   $('sourceVatRateInput').value = String(Number(source.constants?.vatRate || 0) * 100);
   $('sourceDeliveryRateInput').value = String(Number(source.constants?.deliveryRate || 0) * 100);
 
+  const conditionLabels={
+    new_build:'Новостройка',
+    secondary_good:'Вторичка, хорошее состояние',
+    secondary_worn:'Вторичка, нужен ремонт',
+    shell:'Черновая отделка'
+  };
+  const conditionFactors=source.conditionFactors || {};
+  $('conditionFactorRows').innerHTML=['new_build','secondary_good','secondary_worn','shell'].map(code=>{
+    const factor=Number(conditionFactors[code] ?? 1);
+    const extra=Math.round((factor-1)*1000)/10;
+    return `
+      <tr>
+        <td><strong>${esc(conditionLabels[code])}</strong></td>
+        <td>${editableRateCell('condition','',code,factor)}</td>
+        <td>${extra > 0 ? '+'+num.format(extra)+'%' : '0%'}</td>
+      </tr>
+    `;
+  }).join('');
+
   const packages=source.packagePrices || {};
   $('packageMinRows').innerHTML=['minimal','standard','comfort','premium'].map(code=>`
     <tr>
