@@ -2,6 +2,7 @@ import {
   AGENT_REWARD_RATE,
   DELIVERY_RATE,
   EXTRA_RATES_BY_PACKAGE,
+  CONDITION_FACTOR,
   getOfficialApartmentPackageRate,
   PACKAGE_PRICES,
   SMETA_RATES,
@@ -212,7 +213,28 @@ function calculateSmetaEstimate(input: EstimateRequest): EstimateResult {
     group: 'materials'
   });
 
-  const worksTotal = roughWorks + cleanWorks + electricalWorks + additionalWorks;
+  const baseWorksTotal = roughWorks + cleanWorks + electricalWorks + additionalWorks;
+  const conditionFactor = CONDITION_FACTOR[input.condition] ?? 1;
+  const conditionBaseWorks = roughWorks + cleanWorks;
+  const conditionAdjustment = Math.max(0, conditionBaseWorks * (conditionFactor - 1));
+
+  if (conditionAdjustment > 0) {
+    const conditionTitle = {
+      secondary_good: 'Дополнительная подготовка: вторичка в хорошем состоянии',
+      secondary_worn: 'Дополнительная подготовка: вторичка, нужен ремонт',
+      shell: 'Дополнительная подготовка: черновая отделка',
+      new_build: 'Состояние объекта'
+    }[input.condition];
+
+    lines.push({
+      code: 'condition_adjustment',
+      title: conditionTitle,
+      amount: roundRub(conditionAdjustment),
+      group: 'works'
+    });
+  }
+
+  const worksTotal = baseWorksTotal + conditionAdjustment;
   const deliveryTotal = materialsTotal * DELIVERY_RATE;
 
   lines.push({
@@ -222,30 +244,20 @@ function calculateSmetaEstimate(input: EstimateRequest): EstimateResult {
     group: 'delivery'
   });
 
-  const subtotalBeforeVat = worksTotal + materialsTotal + deliveryTotal;
-  const vat = subtotalBeforeVat * VAT_RATE;
+  // Минимальная цена пакета относится к базовому объекту. Доплата за состояние
+  // объекта считается сверх нижнего порога, чтобы выбор состояния всегда влиял на итог.
+  const baseSubtotalBeforeVat = baseWorksTotal + materialsTotal + deliveryTotal;
+  const baseVat = baseSubtotalBeforeVat * VAT_RATE;
+  const baseClientTotal = roundRub(baseSubtotalBeforeVat + baseVat);
 
-  lines.push({
-    code: 'vat',
-    title: 'НДС 5%',
-    amount: roundRub(vat),
-    group: 'tax'
-  });
-
-  const rawClientTotal = roundRub(subtotalBeforeVat + vat);
-
-  // Прайс пакетов в интерфейсе относится к квартирам и задаёт минимальную
-  // коммерческую стоимость выбранного пакета. Дополнительные опции могут
-  // увеличить смету, но их отключение не должно опускать итог ниже
-  // опубликованной цены "от ... ₽/м²".
   const advertisedMinimumTotal =
     input.propertyType === 'apartment'
       ? roundRub(input.areaM2 * PACKAGE_PRICES[input.package].minPerM2)
       : 0;
 
   const minimumAdjustment =
-    advertisedMinimumTotal > rawClientTotal
-      ? advertisedMinimumTotal - rawClientTotal
+    advertisedMinimumTotal > baseClientTotal
+      ? advertisedMinimumTotal - baseClientTotal
       : 0;
 
   if (minimumAdjustment > 0) {
@@ -257,14 +269,32 @@ function calculateSmetaEstimate(input: EstimateRequest): EstimateResult {
     });
   }
 
-  const clientTotal = rawClientTotal + roundRub(minimumAdjustment);
+  const conditionVat = conditionAdjustment * VAT_RATE;
+  const subtotalBeforeVat = baseSubtotalBeforeVat + conditionAdjustment;
+  const vat = baseVat + conditionVat;
+
+  lines.push({
+    code: 'vat',
+    title: 'НДС 5%',
+    amount: roundRub(vat),
+    group: 'tax'
+  });
+
+  const clientTotal =
+    baseClientTotal +
+    roundRub(minimumAdjustment) +
+    roundRub(conditionAdjustment + conditionVat);
+
   const agentRewardBase = roundRub(worksTotal);
   const agentReward = roundRub(agentRewardBase * AGENT_REWARD_RATE);
 
+  const conditionPercent = Math.round((conditionFactor - 1) * 100);
   const objectNote =
-    input.condition === 'new_build' && input.propertyType === 'apartment'
-      ? ''
-      : ' Тип и состояние объекта сохранены как параметры, но автоматическая процентная надбавка не применяется: в исходных сметах такой коэффициент не подтверждён.';
+    conditionPercent > 0
+      ? ' Состояние объекта влияет на стоимость базовых отделочных работ: +' +
+        conditionPercent +
+        '%. Доплата применяется сверх минимальной пакетной цены.'
+      : '';
 
   const minimumNote =
     minimumAdjustment > 0
