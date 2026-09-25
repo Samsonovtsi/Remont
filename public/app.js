@@ -188,6 +188,36 @@ function getDesignProjectTotal() {
   return project && area > 0 ? Math.round(project.pricePerM2 * area) : 0;
 }
 
+function getAgentRewardWithDesign(result = latestEstimate) {
+  if (!result) return { base: 0, reward: 0, rate: 0.05 };
+
+  const worksBase = Number(result.agentRewardBase || result.worksTotal || 0);
+  const backendReward = Number(result.agentReward || 0);
+  const rate = worksBase > 0 && backendReward >= 0
+    ? backendReward / worksBase
+    : 0.05;
+  const designBase = isApartmentProperty() ? getDesignProjectTotal() : 0;
+  const base = worksBase + designBase;
+
+  return {
+    base,
+    reward: Math.round(base * rate),
+    rate
+  };
+}
+
+function renderAgentReward(result = latestEstimate) {
+  if (!result) {
+    if (rewardTotal) rewardTotal.textContent = '—';
+    if (rewardBase) rewardBase.textContent = '—';
+    return;
+  }
+
+  const calculated = getAgentRewardWithDesign(result);
+  if (rewardTotal) rewardTotal.textContent = calculated.base > 0 ? rub.format(calculated.reward) : '—';
+  if (rewardBase) rewardBase.textContent = calculated.base > 0 ? rub.format(calculated.base) : '—';
+}
+
 function renderDesignSummary() {
   const summary = $('designSummary');
   const name = $('designProjectName');
@@ -204,6 +234,8 @@ function renderDesignSummary() {
     if (total) total.textContent = rub.format(designTotal);
     if (combined && latestEstimate) combined.textContent = rub.format(latestEstimate.clientTotal + designTotal);
   }
+
+  renderAgentReward();
 }
 
 function renderDesignProjects() {
@@ -552,7 +584,7 @@ function renderResult(result) {
   const note = document.querySelector('.note');
 
   if (estimateTotal) estimateTotal.textContent = rub.format(result.clientTotal);
-  if (rewardTotal) rewardTotal.textContent = result.agentRewardBase > 0 ? rub.format(result.agentReward) : '—';
+  renderAgentReward(result);
   if (worksTotal) worksTotal.textContent = result.worksTotal > 0 ? rub.format(result.worksTotal) : '—';
   if (materialsTotal) materialsTotal.textContent = result.materialsTotal > 0 ? rub.format(result.materialsTotal) : '—';
   if (deliveryTotal) deliveryTotal.textContent = result.deliveryTotal > 0 ? rub.format(result.deliveryTotal) : '—';
@@ -570,7 +602,6 @@ function renderResult(result) {
       : 'Корректировки';
   }
 
-  if (rewardBase) rewardBase.textContent = result.agentRewardBase > 0 ? rub.format(result.agentRewardBase) : '—';
   if (pricePerM2) pricePerM2.textContent = rub.format(result.pricePerM2Final);
   if (packageName) packageName.textContent = packageData[result.package]?.title || result.package;
 
