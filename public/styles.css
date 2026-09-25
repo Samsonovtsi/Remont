@@ -1335,3 +1335,17 @@ input:focus,select:focus,textarea:focus{
 .design-project-card.recommended .design-select-button{
   background:var(--accent);
 }
+
+
+.design-included-price{
+  color:#8e8a86;
+  text-decoration-thickness:2px;
+}
+.design-gift-label{
+  display:inline-block;
+  margin-top:4px;
+  color:#1f7a49 !important;
+  font-size:12px !important;
+  font-weight:900 !important;
+  line-height:1.2;
+}
