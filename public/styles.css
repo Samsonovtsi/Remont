@@ -183,3 +183,23 @@ textarea:focus{border-color:#999}
   .contact-links{margin-top:12px;justify-content:flex-start}
   .contact-link{width:100%;justify-content:center}
 }
+
+
+/* Top contacts */
+.top-contacts{display:flex;justify-content:flex-end;align-items:center;gap:9px;margin:0 0 18px}
+.top-contact{display:inline-flex;align-items:center;gap:9px;text-decoration:none;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:999px;min-height:44px;transition:.15s}
+.top-contact:hover{border-color:#c9c1ba;transform:translateY(-1px)}
+.top-contact-phone{padding:6px 14px 6px 7px}
+.top-contact-icon-only{width:44px;height:44px;justify-content:center}
+.top-contact-icon{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:var(--ink);color:#fff;flex:0 0 32px;font-weight:900;font-size:9px;letter-spacing:-.3px}
+.top-contact-icon svg{width:17px;height:17px;fill:currentColor}
+.top-contact-telegram{background:#229ED9}
+.top-contact-max{background:#111;font-size:8px;letter-spacing:.2px}
+.top-contact-text{display:block;line-height:1.12}
+.top-contact-text small{display:block;color:var(--muted);font-size:9px;font-weight:700;margin-bottom:2px}
+.top-contact-text strong{display:block;font-size:13px;white-space:nowrap}
+@media(max-width:560px){
+  .top-contacts{justify-content:space-between;gap:7px;margin-bottom:14px}
+  .top-contact-phone{flex:1;min-width:0}
+  .top-contact-text strong{font-size:12px}
+}
