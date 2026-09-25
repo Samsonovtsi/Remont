@@ -50,10 +50,10 @@ function escapeHtml(value = '') {
 
 function packagePreviewImage(code) {
   const images = {
-    minimal: '/images/packages/minimal.png?v=20260925-2',
-    standard: '/images/packages/standard.png?v=20260925-2',
-    comfort: '/images/packages/comfort.png?v=20260925-2',
-    premium: '/images/packages/premium.png?v=20260925-2'
+    minimal: '/images/packages/minimal-preview.jpg?v=20260925-1',
+    standard: '/images/packages/standard-preview.jpg?v=20260925-1',
+    comfort: '/images/packages/comfort-preview.jpg?v=20260925-1',
+    premium: '/images/packages/premium-preview.jpg?v=20260925-1'
   };
   return images[code] || '';
 }
@@ -77,6 +77,15 @@ function updatePackagePreview() {
   image.loading = 'eager';
   image.decoding = 'async';
   image.onerror = () => {
+    const fallback = packageFullImage(selectedPackage);
+    if (image.src.includes('-preview.jpg')) {
+      image.onerror = () => {
+        image.style.display = 'none';
+        console.error('Не удалось загрузить изображение пакета:', fallback);
+      };
+      image.src = fallback;
+      return;
+    }
     image.style.display = 'none';
     console.error('Не удалось загрузить изображение пакета:', src);
   };
@@ -151,7 +160,7 @@ function renderPackages() {
 
     el.innerHTML = `
       <div class="package-visual">
-        ${selectedImage ? `<img class="package-card-image" src="${selectedImage}" loading="eager" decoding="async" fetchpriority="high" onerror="this.style.display='none'" alt="Пример ремонта — пакет ${escapeHtml(pkg.title)}">` : ''}
+        ${selectedImage ? `<img class="package-card-image" src="${selectedImage}" loading="eager" decoding="async" fetchpriority="high" data-fallback="${packageFullImage(code)}" onerror="if(this.dataset.fallback){const f=this.dataset.fallback;this.dataset.fallback='';this.src=f}else{this.style.display='none'}" alt="Пример ремонта — пакет ${escapeHtml(pkg.title)}">` : ''}
         <div class="package-badge">Пакет ремонта</div>
         <div class="package-top">
           <div>
