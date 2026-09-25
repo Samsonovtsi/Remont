@@ -191,4 +191,54 @@ describe('renovation calculator', () => {
     expect(result.agentRewardBase).toBe(result.worksTotal);
   });
 
+  it('never lets an apartment estimate fall below the advertised package minimum', () => {
+    for (const packageCode of ['minimal', 'standard', 'comfort', 'premium'] as const) {
+      const input = estimateRequestSchema.parse({
+        areaM2: 80,
+        package: packageCode,
+        propertyType: 'apartment',
+        condition: 'new_build',
+        calculationMode: 'quick',
+        bathrooms: 0,
+        rooms: 1,
+        doors: 0,
+        doorways: 0,
+        needsFullElectrical: false,
+        needsFullPlumbing: false,
+        needsDemolition: false,
+        needsCeiling: false,
+        hasBalcony: false,
+        warmFloorM2: 0
+      });
+
+      const result = calculateEstimate(input);
+      expect(result.pricePerM2Final).toBeGreaterThanOrEqual(result.basePricePerM2);
+      expect(result.clientTotal).toBeGreaterThanOrEqual(80 * result.basePricePerM2);
+    }
+  });
+
+  it('adds an explicit adjustment line when optional items would push apartment price below the package minimum', () => {
+    const input = estimateRequestSchema.parse({
+      areaM2: 80,
+      package: 'premium',
+      propertyType: 'apartment',
+      condition: 'new_build',
+      calculationMode: 'quick',
+      bathrooms: 0,
+      rooms: 1,
+      doors: 0,
+      doorways: 0,
+      needsFullElectrical: false,
+      needsFullPlumbing: false,
+      needsDemolition: false,
+      needsCeiling: false,
+      hasBalcony: false,
+      warmFloorM2: 0
+    });
+
+    const result = calculateEstimate(input);
+    expect(result.pricePerM2Final).toBeGreaterThanOrEqual(42_800);
+    expect(result.lines.some(line => line.code === 'package_minimum_adjustment')).toBe(true);
+  });
+
 });
