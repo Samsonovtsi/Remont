@@ -257,6 +257,13 @@ export const CONDITION_FACTOR: Record<Condition, number> = {
   shell: 1.08
 };
 
+export function setConditionFactor(condition: Condition, value: number) {
+  if (!Number.isFinite(value) || value < 0) {
+    throw new Error('Некорректный коэффициент состояния');
+  }
+  CONDITION_FACTOR[condition] = value;
+}
+
 export const PROPERTY_FACTOR: Record<PropertyType, number> = {
   apartment: 1.00,
   house: 1.00,
