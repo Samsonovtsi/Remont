@@ -587,7 +587,10 @@ $('calculator').addEventListener('submit', async (event) => {
 });
 
 $('calculator').querySelectorAll('input, select').forEach((field) => {
-  field.addEventListener('input', scheduleAutoCalculation);
+  field.addEventListener('input', () => {
+    scheduleAutoCalculation();
+    if (field.id === 'areaM2') renderPackages();
+  });
   field.addEventListener('change', () => {
     scheduleAutoCalculation();
     const value = field.type === 'checkbox' ? field.checked : field.value;
