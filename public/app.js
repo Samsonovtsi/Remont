@@ -50,16 +50,22 @@ function escapeHtml(value = '') {
 
 function packagePreviewImage(code) {
   const images = {
+    minimal: '/images/packages/minimal.webp?v=20260925-1',
+    standard: '/images/packages/standard.webp?v=20260925-1',
+    comfort: '/images/packages/comfort.webp?v=20260925-1',
+    premium: '/images/packages/premium.webp?v=20260925-1'
+  };
+  return images[code] || '';
+}
+
+function packageFullImage(code) {
+  const images = {
     minimal: '/images/packages/minimal.png?v=20260924-5',
     standard: '/images/packages/standard.png?v=20260924-5',
     comfort: '/images/packages/comfort.png?v=20260924-5',
     premium: '/images/packages/premium.png?v=20260924-5'
   };
   return images[code] || '';
-}
-
-function packageFullImage(code) {
-  return packagePreviewImage(code);
 }
 
 function updatePackagePreview() {
