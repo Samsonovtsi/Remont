@@ -283,13 +283,13 @@ function renderDesignProjects() {
         ? 'Рекомендуем'
         : 'Улучшение проекта';
     const priceHtml = project.included
-      ? '<strong class="design-included-price">0 ₽ доплаты</strong><span>Технический проект уже входит в выбранный ремонт</span>'
+      ? '<strong class="design-included-price"><s>' + rub.format(project.pricePerM2) + ' / м²</s></strong><span class="design-gift-label">В подарок</span>'
       : '<strong>+' + rub.format(project.upgradePricePerM2) + ' / м²</strong>' +
         '<span>' + (area > 0
-          ? 'Доплата ≈ ' + rub.format(upgradeTotal) + ' · полный проект ' + rub.format(retailTotal)
+          ? '≈ ' + rub.format(upgradeTotal) + ' · полный проект ' + rub.format(retailTotal)
           : 'Полная стоимость проекта ' + rub.format(project.pricePerM2) + ' / м²') + '</span>';
     const cta = project.included
-      ? '<div class="design-included-button">Уже включено</div>'
+      ? '<div class="design-included-button">Входит в подарок</div>'
       : '<button type="button" class="design-select-button" data-select-design="' + code + '">' +
         (active ? 'Выбрано' : (code === 'express' ? 'Добавить коллажи' : code === 'full' ? 'Добавить визуализацию' : 'Выбрать максимум')) +
         '</button>';
