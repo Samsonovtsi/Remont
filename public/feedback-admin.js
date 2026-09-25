@@ -218,6 +218,118 @@ function renderCalculationSource(source){
     .join('');
 }
 
+
+const RATE_TARGETS = {
+  smeta: {
+    roughWallPerM2:'Черновые стены, ₽/м²',
+    cleanWallPerM2:'Чистовые стены, ₽/м²',
+    roughFloorPerM2:'Черновой пол, ₽/м²',
+    cleanFloorPerM2:'Чистовой пол, ₽/м²',
+    tilePerM2:'Плиточные работы, ₽/м²',
+    plumbingRough:'Черновая сантехника, ₽',
+    plumbingClean:'Чистовая сантехника, ₽'
+  },
+  extra: {
+    electricalPerM2:'Электрика, ₽/м²',
+    ceilingMaterialPerM2:'Потолок: материал, ₽/м²',
+    ceilingInstallPerM2:'Потолок: монтаж, ₽/м²',
+    doorMaterial:'Дверь: материал, ₽/шт.',
+    doorInstall:'Дверь: монтаж, ₽/шт.',
+    doorwayMaterial:'Открытый проём: материал, ₽/шт.',
+    doorwayInstall:'Открытый проём: монтаж, ₽/шт.',
+    lightMaterial:'Светильник: материал, ₽/шт.',
+    lightInstall:'Светильник: монтаж, ₽/шт.',
+    socketMaterial:'Розетка/выключатель: материал, ₽/шт.',
+    socketInstall:'Розетка/выключатель: монтаж, ₽/шт.',
+    warmFloorMaterialUpTo3M2:'Тёплый пол: комплект, ₽',
+    warmFloorInstallPerM2:'Тёплый пол: монтаж, ₽/м²',
+    balconyTileWorkPerM2:'Балкон: плиточные работы, ₽/м²',
+    demolitionPerM2:'Демонтаж, ₽/м²'
+  }
+};
+
+function targetOptions(selectedGroup, selectedKey){
+  const rows=[];
+  for(const [group,items] of Object.entries(RATE_TARGETS)){
+    for(const [key,label] of Object.entries(items)){
+      const value=group+':'+key;
+      const selected=group===selectedGroup && key===selectedKey ? ' selected' : '';
+      rows.push('<option value="'+esc(value)+'"'+selected+'>'+esc(label)+'</option>');
+    }
+  }
+  return rows.join('');
+}
+
+function packageOptions(selected){
+  return ['minimal','standard','comfort','premium'].map(code=>
+    '<option value="'+code+'"'+(code===selected?' selected':'')+'>'+esc(packageLabel(code))+'</option>'
+  ).join('');
+}
+
+function renderRateCandidates(rows){
+  const root=$('rateCandidateRows');
+  if(!root) return;
+
+  root.innerHTML = rows.length ? rows.map(row=>{
+    const status=row.review_status || 'pending';
+    const confidence=Math.round(Number(row.confidence || 0)*100);
+    const group=row.approved_group || row.suggested_group || 'smeta';
+    const key=row.approved_key || row.suggested_key || 'roughWallPerM2';
+    const pkg=row.approved_package_code || row.package_code || 'comfort';
+    const value=Number(row.approved_value ?? row.unit_price ?? 0);
+    const disabled=status!=='pending' ? ' disabled' : '';
+    const statusLabelText=status==='approved'?'Применена':status==='rejected'?'Отклонена':'На проверке';
+
+    return '<tr data-candidate-row="'+row.id+'">'+
+      '<td><strong>'+esc(row.original_name || '')+'</strong><br><span class="muted">'+esc(row.source_ref || '')+'</span></td>'+
+      '<td>'+esc(row.description || '')+'</td>'+
+      '<td>'+esc(row.unit || '—')+'</td>'+
+      '<td><strong>'+rub.format(Number(row.unit_price || 0))+'</strong></td>'+
+      '<td><span class="confidence">'+confidence+'%</span></td>'+
+      '<td><select data-candidate-package'+disabled+'>'+packageOptions(pkg)+'</select></td>'+
+      '<td><select class="wide-select" data-candidate-target'+disabled+'>'+targetOptions(group,key)+'</select></td>'+
+      '<td><input data-candidate-value type="number" min="0" step="0.01" value="'+esc(value)+'"'+disabled+' /></td>'+
+      '<td><span class="badge '+(status==='approved'?'badge-fixed':status==='rejected'?'badge-progress':'badge-new')+'">'+statusLabelText+'</span></td>'+
+      '<td><div class="actions">'+
+        (status==='pending'
+          ? '<button type="button" data-candidate-approve="'+row.id+'">Подтвердить</button><button type="button" data-candidate-reject="'+row.id+'" class="secondary">Отклонить</button>'
+          : '—')+
+      '</div></td>'+
+    '</tr>';
+  }).join('') : '<tr><td colspan="10" class="muted">Новых ставок для проверки пока нет.</td></tr>';
+}
+
+async function loadRateCandidates(){
+  const data=await api('/api/v1/admin/rate-candidates');
+  renderRateCandidates(data.rows || []);
+}
+
+async function approveCandidate(id){
+  const row=document.querySelector('[data-candidate-row="'+id+'"]');
+  if(!row) return;
+  const target=String(row.querySelector('[data-candidate-target]').value || '').split(':');
+  const packageCode=row.querySelector('[data-candidate-package]').value;
+  const value=Number(row.querySelector('[data-candidate-value]').value);
+  if(target.length!==2 || !Number.isFinite(value) || value<=0){
+    throw new Error('Проверьте параметр и значение ставки.');
+  }
+  await api('/api/v1/admin/rate-candidates/'+id+'/approve',{
+    method:'POST',
+    body:JSON.stringify({group:target[0],key:target[1],packageCode,value})
+  });
+  await Promise.all([loadRateCandidates(), refreshCalculationSource()]);
+}
+
+async function rejectCandidate(id){
+  await api('/api/v1/admin/rate-candidates/'+id+'/reject',{method:'POST',body:'{}'});
+  await loadRateCandidates();
+}
+
+async function refreshCalculationSource(){
+  const source=await api('/api/v1/admin/calculation-source');
+  renderCalculationSource(source);
+}
+
 function fileSize(bytes){
   const n=Number(bytes)||0;
   if(n < 1024) return n+' Б';
@@ -233,6 +345,7 @@ function renderSmetas(rows){
       <td>${esc(row.note || '—')}</td>
       <td><span class="badge badge-new">${esc(row.status || 'uploaded')}</span></td>
       <td><div class="file-actions">
+        <button type="button" data-smeta-analyze="${row.id}" class="secondary">Разобрать заново</button>
         <button type="button" data-smeta-download="${row.id}">Скачать</button>
         <button type="button" data-smeta-delete="${row.id}" class="danger">Удалить</button>
       </div></td>
@@ -263,7 +376,7 @@ async function uploadSmeta(){
   status.className='upload-status';
   try{
     const base64=await fileToBase64(file);
-    await api('/api/v1/admin/smetas',{
+    const uploaded=await api('/api/v1/admin/smetas',{
       method:'POST',
       body:JSON.stringify({
         fileName:file.name,
@@ -275,9 +388,12 @@ async function uploadSmeta(){
     });
     $('smetaFile').value='';
     $('smetaNote').value='';
-    status.textContent='Смета сохранена.';
+    status.textContent=uploaded.analysis?.error
+      ? 'Смета сохранена, но разбор завершился с ошибкой: '+uploaded.analysis.error
+      : 'Смета сохранена. Найдено ставок: '+Number(uploaded.analysis?.count || 0)+'.';
     const data=await api('/api/v1/admin/smetas');
     renderSmetas(data.rows || []);
+    await loadRateCandidates();
   }catch(err){
     status.textContent=err.message;
     status.className='upload-status error';
@@ -324,16 +440,18 @@ async function load(){
     const query = new URLSearchParams({limit:'300'});
     if(filter) query.set('status',filter);
     const days = $('analyticsDays').value || '30';
-    const [data, analytics, source, smetas] = await Promise.all([
+    const [data, analytics, source, smetas, candidates] = await Promise.all([
       api('/api/v1/feedback?'+query.toString()),
       api('/api/v1/analytics/summary?days='+encodeURIComponent(days)),
       api('/api/v1/admin/calculation-source'),
-      api('/api/v1/admin/smetas')
+      api('/api/v1/admin/smetas'),
+      api('/api/v1/admin/rate-candidates')
     ]);
     render(data.rows || []);
     renderAnalytics(analytics);
     renderCalculationSource(source);
     renderSmetas(smetas.rows || []);
+    renderRateCandidates(candidates.rows || []);
     $('journal').classList.remove('hidden');
     $('status').textContent='Панель загружена.';
   }catch(err){
@@ -370,13 +488,34 @@ if(token) load();
 
 $('uploadSmetaBtn').addEventListener('click', uploadSmeta);
 $('smetaRows').addEventListener('click', async event=>{
+  const analyzeButton=event.target.closest('button[data-smeta-analyze]');
   const downloadButton=event.target.closest('button[data-smeta-download]');
   const deleteButton=event.target.closest('button[data-smeta-delete]');
   try{
+    if(analyzeButton){
+      const result=await api('/api/v1/admin/smetas/'+Number(analyzeButton.dataset.smetaAnalyze)+'/analyze',{method:'POST',body:'{}'});
+      $('smetaUploadStatus').textContent='Разбор завершён. Найдено ставок: '+Number(result.count || 0)+'.';
+      await loadRateCandidates();
+    }
     if(downloadButton) await downloadSmeta(Number(downloadButton.dataset.smetaDownload));
     if(deleteButton) await deleteSmeta(Number(deleteButton.dataset.smetaDelete));
   }catch(err){
     $('smetaUploadStatus').textContent=err.message;
     $('smetaUploadStatus').className='upload-status error';
+  }
+});
+
+$('refreshCandidatesBtn')?.addEventListener('click', async ()=>{
+  try{ await loadRateCandidates(); }catch(err){ $('status').textContent=err.message; $('status').className='status error'; }
+});
+$('rateCandidateRows')?.addEventListener('click', async event=>{
+  const approve=event.target.closest('button[data-candidate-approve]');
+  const reject=event.target.closest('button[data-candidate-reject]');
+  try{
+    if(approve) await approveCandidate(Number(approve.dataset.candidateApprove));
+    if(reject) await rejectCandidate(Number(reject.dataset.candidateReject));
+  }catch(err){
+    $('status').textContent=err.message;
+    $('status').className='status error';
   }
 });
