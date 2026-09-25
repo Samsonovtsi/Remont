@@ -4,11 +4,13 @@ import {
   EXTRA_RATES_BY_PACKAGE,
   PACKAGE_PRICES,
   SMETA_RATES,
-  setPricingConstant
+  CONDITION_FACTOR,
+  setPricingConstant,
+  setConditionFactor
 } from './pricing.js';
 
 export const manualPricingValueSchema = z.object({
-  group: z.enum(['package', 'constant', 'smeta', 'extra']),
+  group: z.enum(['package', 'constant', 'condition', 'smeta', 'extra']),
   packageCode: z.enum(['minimal', 'standard', 'comfort', 'premium']).optional(),
   key: z.string().min(1).max(120),
   value: z.number().nonnegative().max(5_000_000)
@@ -45,12 +47,17 @@ async function initStore() {
     CREATE TABLE IF NOT EXISTS manual_pricing_values (
       id BIGSERIAL PRIMARY KEY,
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      target_group VARCHAR(32) NOT NULL CHECK (target_group IN ('package','constant','smeta','extra')),
+      target_group VARCHAR(32) NOT NULL,
       package_code VARCHAR(32),
       target_key VARCHAR(120) NOT NULL,
       value NUMERIC(14,4) NOT NULL,
       UNIQUE(target_group, package_code, target_key)
     )
+  `);
+
+  await db.query(`
+    ALTER TABLE manual_pricing_values
+    DROP CONSTRAINT IF EXISTS manual_pricing_values_target_group_check
   `);
 
   initialized = true;
@@ -65,6 +72,13 @@ function validateTarget(group: string, key: string, packageCode?: string) {
   if (group === 'constant') {
     if (!['agentRewardRate', 'vatRate', 'deliveryRate'].includes(key)) {
       throw new Error('Некорректный системный коэффициент.');
+    }
+    return;
+  }
+
+  if (group === 'condition') {
+    if (!['new_build', 'secondary_good', 'secondary_worn', 'shell'].includes(key)) {
+      throw new Error('Некорректное состояние объекта.');
     }
     return;
   }
@@ -85,7 +99,7 @@ export async function setManualPricingValue(input: z.infer<typeof manualPricingV
   validateTarget(input.group, input.key, input.packageCode);
   const db = getPool();
 
-  const packageCode = input.group === 'constant' ? '' : input.packageCode ?? '';
+  const packageCode = input.group === 'constant' || input.group === 'condition' ? '' : input.packageCode ?? '';
 
   const result = await db.query(
     `
@@ -130,6 +144,8 @@ export async function applyManualPricingValues(force = false) {
       PACKAGE_PRICES[packageCode].minPerM2 = value;
     } else if (group === 'constant') {
       setPricingConstant(key as 'agentRewardRate' | 'vatRate' | 'deliveryRate', value);
+    } else if (group === 'condition') {
+      setConditionFactor(key as keyof typeof CONDITION_FACTOR, value);
     } else if (group === 'smeta' && packageCode && key in SMETA_RATES[packageCode]) {
       (SMETA_RATES[packageCode] as unknown as Record<string, number>)[key] = value;
     } else if (group === 'extra' && packageCode && key in EXTRA_RATES_BY_PACKAGE[packageCode]) {
