@@ -849,3 +849,51 @@ input:focus,select:focus,textarea:focus{
   .segmented-select{grid-auto-flow:column}
   .quantity-stepper{max-width:250px}
 }
+
+
+/* Cleaner object controls */
+.object-grid{
+  grid-template-columns:1.05fr 1.05fr 1.25fr 1.8fr 1.45fr 1.4fr;
+  column-gap:14px;
+  row-gap:14px;
+}
+.room-control>span,
+.door-control>span{
+  min-height:28px;
+  display:flex;
+  align-items:flex-end;
+  gap:5px;
+  line-height:1.15;
+}
+.room-control>span small{
+  display:block;
+  margin:0;
+  white-space:nowrap;
+}
+.segmented-select{
+  gap:6px;
+}
+.segmented-select button{
+  min-width:44px;
+  height:50px;
+  padding:0 12px;
+  font-size:13px;
+}
+.quantity-stepper{
+  grid-template-columns:50px minmax(70px,1fr) 50px;
+  gap:7px;
+}
+.quantity-stepper button,
+.quantity-stepper input{
+  height:50px;
+}
+.quantity-stepper input{
+  font-size:20px;
+}
+@media(max-width:1180px){
+  .object-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:700px){
+  .object-grid{grid-template-columns:1fr}
+  .room-control>span,.door-control>span{min-height:0}
+}
