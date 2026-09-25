@@ -408,6 +408,12 @@ function renderResult(result) {
   const estimateTotal = $('estimateTotal');
   const rewardTotal = $('rewardTotal');
   const worksTotal = $('worksTotal');
+  const materialsTotal = $('materialsTotal');
+  const deliveryTotal = $('deliveryTotal');
+  const vatTotal = $('vatTotal');
+  const adjustmentRow = $('adjustmentRow');
+  const adjustmentLabel = $('adjustmentLabel');
+  const adjustmentTotal = $('adjustmentTotal');
   const rewardBase = $('rewardBase');
   const pricePerM2 = $('pricePerM2');
   const packageName = $('packageName');
@@ -417,6 +423,22 @@ function renderResult(result) {
   if (estimateTotal) estimateTotal.textContent = rub.format(result.clientTotal);
   if (rewardTotal) rewardTotal.textContent = result.agentRewardBase > 0 ? rub.format(result.agentReward) : '—';
   if (worksTotal) worksTotal.textContent = result.worksTotal > 0 ? rub.format(result.worksTotal) : '—';
+  if (materialsTotal) materialsTotal.textContent = result.materialsTotal > 0 ? rub.format(result.materialsTotal) : '—';
+  if (deliveryTotal) deliveryTotal.textContent = result.deliveryTotal > 0 ? rub.format(result.deliveryTotal) : '—';
+  if (vatTotal) vatTotal.textContent = result.vat > 0 ? rub.format(result.vat) : '—';
+
+  const adjustmentLines = Array.isArray(result.lines)
+    ? result.lines.filter(line => line.group === 'adjustment')
+    : [];
+  const adjustmentAmount = adjustmentLines.reduce((sum, line) => sum + Number(line.amount || 0), 0);
+  if (adjustmentRow) adjustmentRow.classList.toggle('hidden', Math.abs(adjustmentAmount) < 1);
+  if (adjustmentTotal && Math.abs(adjustmentAmount) >= 1) adjustmentTotal.textContent = rub.format(adjustmentAmount);
+  if (adjustmentLabel && adjustmentLines.length) {
+    adjustmentLabel.textContent = adjustmentLines.length === 1
+      ? adjustmentLines[0].title
+      : 'Корректировки';
+  }
+
   if (rewardBase) rewardBase.textContent = result.agentRewardBase > 0 ? rub.format(result.agentRewardBase) : '—';
   if (pricePerM2) pricePerM2.textContent = rub.format(result.pricePerM2Final);
   if (packageName) packageName.textContent = packageData[result.package]?.title || result.package;
