@@ -50,10 +50,10 @@ function escapeHtml(value = '') {
 
 function packagePreviewImage(code) {
   const images = {
-    minimal: '/images/packages/minimal.webp?v=20260925-1',
-    standard: '/images/packages/standard.webp?v=20260925-1',
-    comfort: '/images/packages/comfort.webp?v=20260925-1',
-    premium: '/images/packages/premium.webp?v=20260925-1'
+    minimal: '/images/packages/minimal.png?v=20260925-2',
+    standard: '/images/packages/standard.png?v=20260925-2',
+    comfort: '/images/packages/comfort.png?v=20260925-2',
+    premium: '/images/packages/premium.png?v=20260925-2'
   };
   return images[code] || '';
 }
