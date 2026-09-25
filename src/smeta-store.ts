@@ -32,7 +32,7 @@ function getPool() {
   return pool;
 }
 
-async function initSmetaStore() {
+export async function initSmetaStore() {
   if (initialized) return;
   const db = getPool();
 
