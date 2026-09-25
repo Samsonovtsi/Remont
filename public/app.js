@@ -95,7 +95,8 @@ function updatePackagePreview() {
   image.src = src;
   image.style.display = src ? 'block' : 'none';
   image.alt = pkg ? `Пример ремонта — пакет ${pkg.title}` : 'Пример ремонта';
-  $('selectedPackageImageCaption').textContent = pkg ? `Пакет «${pkg.title}»` : '—';
+  const caption = $('selectedPackageImageCaption');
+  if (caption) caption.textContent = pkg ? `Пакет «${pkg.title}»` : '—';
 }
 
 async function loadPackages() {
@@ -360,18 +361,29 @@ function renderResult(result) {
     feedbackStatus.textContent = '';
     feedbackStatus.className = 'feedback-status';
   }
-  $('estimateTotal').textContent = rub.format(result.clientTotal);
-  $('rewardTotal').textContent = result.agentRewardBase > 0 ? rub.format(result.agentReward) : '—';
-  $('worksTotal').textContent = result.worksTotal > 0 ? rub.format(result.worksTotal) : '—';
-  $('rewardBase').textContent = result.agentRewardBase > 0 ? rub.format(result.agentRewardBase) : '—';
-  $('pricePerM2').textContent = rub.format(result.pricePerM2Final);
-  $('packageName').textContent = packageData[result.package]?.title || result.package;
+  const estimateTotal = $('estimateTotal');
+  const rewardTotal = $('rewardTotal');
+  const worksTotal = $('worksTotal');
+  const rewardBase = $('rewardBase');
+  const pricePerM2 = $('pricePerM2');
+  const packageName = $('packageName');
+  const lines = $('lines');
+  const note = document.querySelector('.note');
 
-  $('lines').innerHTML = result.lines.map(line => `
-    <div class="line-item"><span>${line.title}</span><span>${rub.format(line.amount)}</span></div>
-  `).join('');
+  if (estimateTotal) estimateTotal.textContent = rub.format(result.clientTotal);
+  if (rewardTotal) rewardTotal.textContent = result.agentRewardBase > 0 ? rub.format(result.agentReward) : '—';
+  if (worksTotal) worksTotal.textContent = result.worksTotal > 0 ? rub.format(result.worksTotal) : '—';
+  if (rewardBase) rewardBase.textContent = result.agentRewardBase > 0 ? rub.format(result.agentRewardBase) : '—';
+  if (pricePerM2) pricePerM2.textContent = rub.format(result.pricePerM2Final);
+  if (packageName) packageName.textContent = packageData[result.package]?.title || result.package;
 
-  document.querySelector('.note').textContent = result.disclaimer;
+  if (lines) {
+    lines.innerHTML = result.lines.map(line => `
+      <div class="line-item"><span>${line.title}</span><span>${rub.format(line.amount)}</span></div>
+    `).join('');
+  }
+
+  if (note) note.textContent = result.disclaimer;
 }
 
 
