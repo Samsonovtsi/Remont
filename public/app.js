@@ -207,6 +207,9 @@ function getAgentRewardWithDesign(result = latestEstimate) {
 }
 
 function renderAgentReward(result = latestEstimate) {
+  const rewardTotal = $('rewardTotal');
+  const rewardBase = $('rewardBase');
+
   if (!result) {
     if (rewardTotal) rewardTotal.textContent = '—';
     if (rewardBase) rewardBase.textContent = '—';
