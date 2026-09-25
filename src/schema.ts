@@ -5,8 +5,8 @@ const nonNegative = z.number().min(0).max(10000).optional();
 export const estimateRequestSchema = z.object({
   areaM2: z.number().positive().max(3000),
   package: z.enum(['minimal', 'standard', 'comfort', 'premium']),
-  propertyType: z.enum(['apartment', 'house', 'commercial']).default('apartment'),
-  condition: z.enum(['new_build', 'secondary_good', 'secondary_worn', 'shell']).default('new_build'),
+  propertyType: z.enum(['apartment', 'apartment_new_build', 'apartment_secondary', 'house', 'commercial']).default('apartment_new_build'),
+  condition: z.enum(['shell', 'white_box', 'developer_finish', 'secondary_good', 'secondary_cosmetic', 'secondary_worn']).default('shell'),
 
   calculationMode: z.enum(['quick', 'exact']).default('quick'),
 
