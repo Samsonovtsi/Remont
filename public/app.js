@@ -141,7 +141,7 @@ function renderPackages() {
     const inheritanceNote = previousTitle
       ? `<div class="package-inheritance-note">В пакет уже включено всё из пакета «${escapeHtml(previousTitle)}». Ниже показаны только дополнительные или улучшенные позиции.</div>`
       : '';
-    const selectedImage = code === selectedPackage ? packagePreviewImage(code) : '';
+    const selectedImage = packagePreviewImage(code);
 
     el.innerHTML = `
       <div class="package-visual">
