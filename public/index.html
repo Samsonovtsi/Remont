@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Конфигуратор ремонта — Этажи.Ремонт</title>
-  <link rel="stylesheet" href="/styles.css?v=19" />
+  <link rel="stylesheet" href="/styles.css?v=20" />
 </head>
 <body>
   <main class="page configurator-page">
@@ -56,11 +56,10 @@
                 <button type="button" data-value="1">1</button>
                 <button type="button" data-value="2" class="active">2</button>
                 <button type="button" data-value="3">3</button>
-                <button type="button" data-value="4">4</button>
                 <button type="button" data-value="other">4+</button>
               </div>
               <input id="rooms" type="hidden" value="2" />
-              <input id="roomsOther" class="other-count hidden" type="number" min="5" max="50" value="5" inputmode="numeric" aria-label="Иное количество жилых комнат" />
+              <input id="roomsOther" class="other-count hidden" type="number" min="4" max="50" value="4" inputmode="numeric" aria-label="Количество жилых комнат: 4 или больше" />
             </div>
 
             <div class="field room-control">
@@ -279,6 +278,6 @@
     </a>
   </aside>
 
-  <script src="/app.js?v=26"></script>
+  <script src="/app.js?v=27"></script>
 </body>
 </html>
