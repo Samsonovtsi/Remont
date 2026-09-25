@@ -220,10 +220,12 @@ function calculateSmetaEstimate(input: EstimateRequest): EstimateResult {
 
   if (Math.abs(conditionAdjustment) >= 1) {
     const conditionLabel = {
+      shell: 'без отделки / черновая',
+      white_box: 'предчистовая (White Box)',
+      developer_finish: 'чистовая от застройщика',
       secondary_good: 'вторичка в хорошем состоянии',
-      secondary_worn: 'вторичка, нужен ремонт',
-      shell: 'черновая отделка',
-      new_build: 'новостройка'
+      secondary_cosmetic: 'вторичка, требуется косметический ремонт',
+      secondary_worn: 'вторичка, требуется капитальный ремонт'
     }[input.condition];
     const conditionTitle =
       conditionAdjustment > 0
@@ -261,7 +263,7 @@ function calculateSmetaEstimate(input: EstimateRequest): EstimateResult {
   const rawClientTotal = roundRub(subtotalBeforeVat + vat);
 
   const advertisedMinimumTotal =
-    input.propertyType === 'apartment'
+    ['apartment', 'apartment_new_build', 'apartment_secondary'].includes(input.propertyType)
       ? roundRub(input.areaM2 * PACKAGE_PRICES[input.package].minPerM2)
       : 0;
 
