@@ -897,3 +897,69 @@ input:focus,select:focus,textarea:focus{
   .object-grid{grid-template-columns:1fr}
   .room-control>span,.door-control>span{min-height:0}
 }
+
+
+/* Object section: readable two-row layout */
+.object-grid{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:18px 16px!important;
+  align-items:end;
+}
+.object-grid .field>span,
+.object-grid .room-control>span,
+.object-grid .door-control>span{
+  min-height:0;
+  margin-bottom:8px;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font-size:11px;
+  line-height:1.25;
+}
+.object-grid .room-control>span small{
+  display:inline;
+  margin:0;
+  font-size:9px;
+  white-space:nowrap;
+  color:var(--muted);
+  font-weight:600;
+}
+.object-grid input,
+.object-grid select{
+  height:48px;
+}
+.segmented-select{
+  display:flex;
+  gap:7px;
+}
+.segmented-select button{
+  flex:1 1 0;
+  min-width:48px;
+  height:48px;
+  padding:0 10px;
+  font-size:12px;
+}
+.quantity-stepper{
+  max-width:300px;
+  grid-template-columns:52px minmax(80px,1fr) 52px;
+}
+.quantity-stepper button,
+.quantity-stepper input{
+  height:48px;
+}
+.quantity-stepper input{
+  font-size:18px;
+}
+@media(max-width:820px){
+  .object-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  }
+}
+@media(max-width:560px){
+  .object-grid{
+    grid-template-columns:1fr!important;
+    gap:14px!important;
+  }
+  .segmented-select{max-width:340px}
+  .quantity-stepper{max-width:260px}
+}
