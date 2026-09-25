@@ -13,7 +13,8 @@ import {
   SMETA_RATES,
   EXTRA_RATES_BY_PACKAGE,
   OFFICIAL_APARTMENT_PRICE_BANDS_2026,
-  COMMERCIAL_TILE_RATES
+  COMMERCIAL_TILE_RATES,
+  CONDITION_FACTOR
 } from './pricing.js';
 import { estimateRequestSchema } from './schema.js';
 import {
@@ -116,6 +117,7 @@ app.get('/api/v1/admin/calculation-source', async (request, reply) => {
       vatRate: VAT_RATE,
       deliveryRate: DELIVERY_RATE
     },
+    conditionFactors: CONDITION_FACTOR,
     activeOverrides: await listPricingOverrides().catch(() => []),
     manualValues: await listManualPricingValues().catch(() => []),
     calculationNotes: [
