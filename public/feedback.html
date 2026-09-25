@@ -73,6 +73,15 @@
     .status{margin-top:10px;font-size:12px;min-height:16px}
     .error{color:#a62a22;font-weight:700}
     .hidden{display:none}
+    .admin-tabs{display:flex;gap:8px;margin:18px 0 14px;padding:6px;background:#ebe6e1;border-radius:14px;width:max-content;max-width:100%;overflow:auto}
+    .admin-tab{background:transparent;color:#514a45;white-space:nowrap;padding:10px 14px}
+    .admin-tab.active{background:#181818;color:#fff;box-shadow:0 4px 12px rgba(0,0,0,.12)}
+    .admin-tab-panel{display:none}
+    .admin-tab-panel.active{display:block}
+    .editable-value{display:grid;grid-template-columns:minmax(90px,1fr) auto;gap:6px;align-items:center}
+    .editable-value input{min-width:88px;padding:7px 8px;font-size:11px}
+    .editable-value button{padding:7px 8px;font-size:10px}
+    .edit-note{font-size:10px;color:var(--muted);margin-top:4px}
     @media(max-width:1050px){.analytics-grid{grid-template-columns:1fr 1fr}.analytics-grid .chart-card:first-child{grid-column:1/-1}}
     @media(max-width:760px){.top{display:block}.auth{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}.analytics-grid{grid-template-columns:1fr}.analytics-grid .chart-card:first-child{grid-column:auto}.source-grid{grid-template-columns:1fr}.upload-grid{grid-template-columns:1fr}h1{font-size:30px}}
   </style>
@@ -101,6 +110,13 @@
 
     <section id="journal" class="hidden">
 
+      <nav class="admin-tabs" aria-label="Разделы админ-панели">
+        <button type="button" class="admin-tab active" data-admin-tab="analytics">Аналитика</button>
+        <button type="button" class="admin-tab" data-admin-tab="values">Значения для расчётов</button>
+        <button type="button" class="admin-tab" data-admin-tab="feedback">Обратная связь</button>
+      </nav>
+
+      <section class="admin-tab-panel active" data-admin-tab-panel="analytics">
       <div class="section-head">
         <h2>Аналитика сервиса</h2>
         <select id="analyticsDays" style="width:auto">
@@ -140,9 +156,12 @@
         </div>
       </div>
 
+      </section>
+
+      <section class="admin-tab-panel" data-admin-tab-panel="values">
       <div class="section-head">
         <div>
-          <h2>Данные, используемые в расчёте</h2>
+          <h2>Значения, используемые в расчётах</h2>
           <div class="muted" style="font-size:11px;margin-top:4px">Текущие ставки, коэффициенты, матрица цен и дополнительные работы.</div>
         </div>
       </div>
@@ -239,8 +258,11 @@
         </table>
       </div>
 
+      </section>
+
+      <section class="admin-tab-panel" data-admin-tab-panel="feedback">
       <div class="section-head">
-        <h2>Журнал ошибок смет</h2>
+        <h2>Обратная связь по расчётам</h2>
       </div>
 
       <div class="toolbar">
@@ -272,6 +294,7 @@
           <tbody id="rows"></tbody>
         </table>
       </div>
+      </section>
     </section>
     <section class="panel" style="margin-top:14px">
       <strong>Связаться с нами</strong>
@@ -283,6 +306,6 @@
     </section>
   </main>
 
-  <script src="/feedback-admin.js?v=4"></script>
+  <script src="/feedback-admin.js?v=5"></script>
 </body>
 </html>
